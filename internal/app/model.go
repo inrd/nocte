@@ -10,6 +10,8 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+
+	"github.com/thomas/not/internal/config"
 )
 
 var (
@@ -37,9 +39,10 @@ type Model struct {
 	height  int
 	status  string
 	isError bool
+	config  config.Config
 }
 
-func New() Model {
+func New(cfg config.Config) Model {
 	input := textinput.New()
 	input.Placeholder = "Search or create a note..."
 	input.Prompt = ""
@@ -47,7 +50,8 @@ func New() Model {
 	input.Width = 48
 
 	return Model{
-		input: input,
+		input:  input,
+		config: cfg,
 	}
 }
 
@@ -75,7 +79,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, nil
 			}
 
-			path := filepath.Join(".", filename+".md")
+			if err := os.MkdirAll(m.config.NotesPath, 0o755); err != nil {
+				m.status = fmt.Sprintf("Could not prepare notes dir: %v", err)
+				m.isError = true
+				return m, nil
+			}
+
+			path := filepath.Join(m.config.NotesPath, filename+".md")
 			file, err := os.OpenFile(path, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o644)
 			if err != nil {
 				if os.IsExist(err) {
@@ -104,7 +114,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m Model) View() string {
 	inputBox := inputStyle.Render(m.input.View())
-	help := helpStyle.Render("Type a note name and press Enter. Esc quits.")
+	help := helpStyle.Render(fmt.Sprintf("Type a note name and press Enter. Notes path: %s", m.config.NotesPath))
 
 	status := ""
 	switch {
