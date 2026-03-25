@@ -10,14 +10,16 @@ import (
 	"github.com/thomas/not/internal/config"
 )
 
+const version = "0.1.0"
+
 func main() {
-	cfg, err := config.LoadOrCreate()
+	cfg, configPath, err := config.LoadOrCreate()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "not: %v\n", err)
 		os.Exit(1)
 	}
 
-	program := tea.NewProgram(app.New(cfg), tea.WithAltScreen())
+	program := tea.NewProgram(app.New(cfg, configPath, version), tea.WithAltScreen())
 
 	if _, err := program.Run(); err != nil {
 		fmt.Fprintf(os.Stderr, "not: %v\n", err)

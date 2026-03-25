@@ -14,28 +14,29 @@ type Config struct {
 	NotesPath string `json:"notes_path"`
 }
 
-func LoadOrCreate() (Config, error) {
+func LoadOrCreate() (Config, string, error) {
 	configPath, err := path()
 	if err != nil {
-		return Config{}, err
+		return Config{}, "", err
 	}
 
 	if _, err := os.Stat(configPath); err == nil {
-		return load(configPath)
+		cfg, err := load(configPath)
+		return cfg, configPath, err
 	} else if !os.IsNotExist(err) {
-		return Config{}, fmt.Errorf("stat config: %w", err)
+		return Config{}, "", fmt.Errorf("stat config: %w", err)
 	}
 
 	cfg, err := defaultConfig()
 	if err != nil {
-		return Config{}, err
+		return Config{}, "", err
 	}
 
 	if err := save(configPath, cfg); err != nil {
-		return Config{}, err
+		return Config{}, "", err
 	}
 
-	return cfg, nil
+	return cfg, configPath, nil
 }
 
 func path() (string, error) {
