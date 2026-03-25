@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/textarea"
@@ -65,6 +66,8 @@ type Model struct {
 	version      string
 	activeDialog string
 	commandIndex int
+	noteIndex    int
+	noteMatches  []noteMatch
 	editorPath   string
 	editorName   string
 	lastSaved    string
@@ -73,6 +76,12 @@ type Model struct {
 type command struct {
 	name        string
 	description string
+}
+
+type noteMatch struct {
+	name  string
+	path  string
+	score int
 }
 
 func New(cfg config.Config, configPath string, version string) Model {
@@ -92,6 +101,7 @@ func New(cfg config.Config, configPath string, version string) Model {
 	return Model{
 		input:      input,
 		editor:     editor,
+		noteIndex:  -1,
 		config:     cfg,
 		configPath: configPath,
 		version:    version,
@@ -157,14 +167,29 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.moveCommandSelection(-1)
 				return m, nil
 			}
+			if m.hasNotePalette() {
+				m.moveNoteSelection(-1)
+				return m, nil
+			}
 		case "down":
 			if m.isCommandMode() {
 				m.moveCommandSelection(1)
 				return m, nil
 			}
+			if m.hasNotePalette() {
+				m.moveNoteSelection(1)
+				return m, nil
+			}
 		case "enter":
 			if m.isCommandMode() {
 				return m.handleCommand()
+			}
+			if m.noteIndex >= 0 && m.noteIndex < len(m.noteMatches) {
+				if err := m.openExistingNote(m.noteMatches[m.noteIndex]); err != nil {
+					m.status = err.Error()
+					m.isError = true
+				}
+				return m, nil
 			}
 
 			filename, err := sanitizeFilename(m.input.Value())
@@ -203,8 +228,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	var cmd tea.Cmd
+	previousValue := m.input.Value()
 	m.input, cmd = m.input.Update(msg)
-	m.syncCommandSelection()
+	if m.input.Value() != previousValue {
+		m.syncLauncherState()
+	}
 	return m, cmd
 }
 
@@ -228,6 +256,8 @@ func (m Model) View() string {
 	parts := []string{inputBox}
 	if m.isCommandMode() {
 		parts = append(parts, m.commandPaletteView())
+	} else if m.shouldShowNotePalette() {
+		parts = append(parts, m.notePaletteView())
 	}
 	parts = append(parts, help, status)
 
@@ -444,21 +474,57 @@ func (m Model) commandPaletteView() string {
 	return commandPaletteStyle.Render(strings.Join(lines, "\n"))
 }
 
+func (m Model) shouldShowNotePalette() bool {
+	return !m.isCommandMode() && strings.TrimSpace(m.input.Value()) != ""
+}
+
+func (m Model) hasNotePalette() bool {
+	return m.shouldShowNotePalette() && len(m.noteMatches) > 0
+}
+
+func (m Model) notePaletteView() string {
+	if len(m.noteMatches) == 0 {
+		return commandPaletteStyle.Render(helpStyle.Render("No matching notes"))
+	}
+
+	lines := make([]string, 0, len(m.noteMatches))
+	for i, note := range m.noteMatches {
+		line := note.name
+		if i == m.noteIndex {
+			lines = append(lines, commandSelectedStyle.Render(line))
+			continue
+		}
+
+		lines = append(lines, line)
+	}
+
+	return commandPaletteStyle.Render(strings.Join(lines, "\n"))
+}
+
 func (m Model) isEditing() bool {
 	return m.editorPath != ""
 }
 
 func (m *Model) openEditor(path string, name string) {
+	content, err := os.ReadFile(path)
+	if err != nil {
+		m.status = fmt.Sprintf("Could not open %s: %v", name, err)
+		m.isError = true
+		return
+	}
+
 	m.editorPath = path
 	m.editorName = name
-	m.lastSaved = ""
-	m.editor.SetValue("")
+	m.lastSaved = string(content)
+	m.editor.SetValue(m.lastSaved)
 	m.editor.Focus()
 	m.resizeEditor()
 	m.input.SetValue("")
 	m.input.Blur()
 	m.activeDialog = ""
 	m.commandIndex = 0
+	m.noteIndex = -1
+	m.noteMatches = nil
 	m.status = fmt.Sprintf("Editing %s", name)
 	m.isError = false
 }
@@ -472,6 +538,7 @@ func (m *Model) closeEditor() {
 	m.editor.Blur()
 	m.input.SetValue("")
 	m.input.Focus()
+	m.syncLauncherState()
 	m.status = fmt.Sprintf("Closed %s", name)
 	m.isError = false
 }
@@ -507,4 +574,129 @@ func (m *Model) saveEditor() {
 	m.lastSaved = content
 	m.status = fmt.Sprintf("Autosaved %s", m.editorName)
 	m.isError = false
+}
+
+func (m *Model) syncLauncherState() {
+	if m.isCommandMode() {
+		m.syncCommandSelection()
+		m.noteMatches = nil
+		m.noteIndex = -1
+		return
+	}
+
+	m.commandIndex = 0
+	m.noteMatches = m.findNoteMatches(strings.TrimSpace(m.input.Value()))
+	m.noteIndex = -1
+}
+
+func (m *Model) moveNoteSelection(delta int) {
+	if len(m.noteMatches) == 0 {
+		m.noteIndex = -1
+		return
+	}
+
+	if m.noteIndex == -1 {
+		if delta > 0 {
+			m.noteIndex = 0
+			return
+		}
+
+		m.noteIndex = len(m.noteMatches) - 1
+		return
+	}
+
+	m.noteIndex = (m.noteIndex + delta + len(m.noteMatches)) % len(m.noteMatches)
+}
+
+func (m *Model) openExistingNote(note noteMatch) error {
+	m.openEditor(note.path, note.name)
+	if m.isError {
+		return fmt.Errorf(m.status)
+	}
+
+	return nil
+}
+
+func (m Model) findNoteMatches(query string) []noteMatch {
+	if query == "" {
+		return nil
+	}
+
+	entries, err := os.ReadDir(m.config.NotesPath)
+	if err != nil {
+		return nil
+	}
+
+	matches := make([]noteMatch, 0, len(entries))
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+
+		name := entry.Name()
+		if filepath.Ext(name) != ".md" {
+			continue
+		}
+
+		score, ok := fuzzyScore(strings.TrimSuffix(name, filepath.Ext(name)), query)
+		if !ok {
+			continue
+		}
+
+		matches = append(matches, noteMatch{
+			name:  name,
+			path:  filepath.Join(m.config.NotesPath, name),
+			score: score,
+		})
+	}
+
+	sort.Slice(matches, func(i int, j int) bool {
+		if matches[i].score == matches[j].score {
+			return matches[i].name < matches[j].name
+		}
+		return matches[i].score < matches[j].score
+	})
+
+	return matches
+}
+
+func fuzzyScore(candidate string, query string) (int, bool) {
+	candidate = strings.ToLower(candidate)
+	query = strings.ToLower(strings.TrimSpace(query))
+
+	if query == "" {
+		return 0, false
+	}
+
+	idx := 0
+	lastMatch := -1
+	score := 0
+
+	for _, r := range query {
+		found := false
+		for idx < len(candidate) {
+			if rune(candidate[idx]) == r {
+				score += idx
+				if lastMatch != -1 {
+					score += idx - lastMatch - 1
+				}
+				lastMatch = idx
+				idx++
+				found = true
+				break
+			}
+			idx++
+		}
+
+		if !found {
+			return 0, false
+		}
+	}
+
+	score += len(candidate) - len(query)
+	if strings.Contains(candidate, query) {
+		score -= len(query)
+	}
+
+	return score, true
 }

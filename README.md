@@ -4,8 +4,10 @@
 
 It currently focuses on a fast keyboard-first flow:
 
-- Type a new note name in the launcher.
-- Press `Enter` to create the note.
+- Type a note name in the launcher to fuzzy-search existing notes.
+- Use `Up` and `Down` to select a matching note when you want to open one.
+- Press `Enter` with a selected note to open it.
+- Press `Enter` without selecting a note to create a new one.
 - Edit the note immediately in a simple plain-text editor.
 - Changes autosave as you type.
 - Press `Esc` to return to the launcher.
@@ -13,6 +15,7 @@ It currently focuses on a fast keyboard-first flow:
 ## Current Features
 
 - Lightweight local-first note creation
+- Fuzzy note search in the launcher
 - Plain Markdown files on disk
 - Filename sanitization for new notes
 - Protection against overwriting existing notes
