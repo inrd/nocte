@@ -6,6 +6,7 @@
 
 The project should evolve in small, reversible steps. Favor simple implementations that leave room for iteration over premature architecture or polished abstractions.
 Keep this file up to date on each iteration of the codebase so it remains a reliable snapshot of current behavior and expectations.
+Keep `README.md` updated on each iteration as user-facing behavior, setup, and workflow change.
 
 ## Current Direction
 
