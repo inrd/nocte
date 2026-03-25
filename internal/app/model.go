@@ -40,6 +40,16 @@ var (
 
 	dialogTitleStyle = lipgloss.NewStyle().
 				Bold(true)
+
+	commandPaletteStyle = lipgloss.NewStyle().
+				Border(lipgloss.RoundedBorder()).
+				BorderForeground(lipgloss.Color("8")).
+				Padding(0, 1).
+				Width(48)
+
+	commandSelectedStyle = lipgloss.NewStyle().
+				Foreground(lipgloss.Color("0")).
+				Background(lipgloss.Color("12"))
 )
 
 type Model struct {
@@ -52,6 +62,12 @@ type Model struct {
 	configPath   string
 	version      string
 	activeDialog string
+	commandIndex int
+}
+
+type command struct {
+	name        string
+	description string
 }
 
 func New(cfg config.Config, configPath string, version string) Model {
@@ -70,6 +86,11 @@ func New(cfg config.Config, configPath string, version string) Model {
 }
 
 var invalidFileChars = regexp.MustCompile(`[^a-z0-9._-]+`)
+var commands = []command{
+	{name: ":help", description: "Show available commands"},
+	{name: ":info", description: "Show app and path info"},
+	{name: ":quit", description: "Exit the app"},
+}
 
 func (m Model) Init() tea.Cmd {
 	return textinput.Blink
@@ -99,8 +120,18 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 		case "ctrl+c", "esc":
 			return m, tea.Quit
+		case "up":
+			if m.isCommandMode() {
+				m.moveCommandSelection(-1)
+				return m, nil
+			}
+		case "down":
+			if m.isCommandMode() {
+				m.moveCommandSelection(1)
+				return m, nil
+			}
 		case "enter":
-			if strings.HasPrefix(strings.TrimSpace(m.input.Value()), ":") {
+			if m.isCommandMode() {
 				return m.handleCommand()
 			}
 
@@ -141,13 +172,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	var cmd tea.Cmd
 	m.input, cmd = m.input.Update(msg)
+	m.syncCommandSelection()
 	return m, cmd
 }
 
 func (m Model) View() string {
 	inputBox := inputStyle.Render(m.input.View())
 	help := helpStyle.Render("Type a note name and press Enter. Type :help for commands. Use :quit or Esc to quit.")
-	pathHint := helpStyle.Render(fmt.Sprintf("Notes path: %s", m.config.NotesPath))
 
 	status := ""
 	switch {
@@ -158,7 +189,13 @@ func (m Model) View() string {
 		status = successStyle.Render(m.status)
 	}
 
-	content := lipgloss.JoinVertical(lipgloss.Center, inputBox, help, pathHint, status)
+	parts := []string{inputBox}
+	if m.isCommandMode() {
+		parts = append(parts, m.commandPaletteView())
+	}
+	parts = append(parts, help, status)
+
+	content := lipgloss.JoinVertical(lipgloss.Center, parts...)
 
 	if m.width == 0 || m.height == 0 {
 		if m.activeDialog != "" {
@@ -179,16 +216,25 @@ func (m Model) View() string {
 }
 
 func (m Model) handleCommand() (tea.Model, tea.Cmd) {
-	command := strings.TrimSpace(m.input.Value())
+	matches := m.filteredCommands()
+	if len(matches) == 0 {
+		m.status = fmt.Sprintf("Unknown command: %s", strings.TrimSpace(m.input.Value()))
+		m.isError = true
+		return m, nil
+	}
+
+	command := matches[m.commandIndex].name
 
 	switch command {
 	case ":help":
 		m.activeDialog = "help"
+		m.input.SetValue(command)
 		m.status = ""
 		m.isError = false
 		return m, nil
 	case ":info":
 		m.activeDialog = "info"
+		m.input.SetValue(command)
 		m.status = ""
 		m.isError = false
 		return m, nil
@@ -258,4 +304,80 @@ func infoDialog(version string, configPath string, notesPath string) string {
 	)
 
 	return dialogStyle.Render(body)
+}
+
+func (m Model) isCommandMode() bool {
+	return strings.HasPrefix(strings.TrimSpace(m.input.Value()), ":")
+}
+
+func (m Model) filteredCommands() []command {
+	query := strings.ToLower(strings.TrimSpace(m.input.Value()))
+	if !strings.HasPrefix(query, ":") {
+		return nil
+	}
+
+	if query == ":" {
+		return commands
+	}
+
+	filtered := make([]command, 0, len(commands))
+	for _, command := range commands {
+		name := strings.ToLower(command.name)
+		description := strings.ToLower(command.description)
+		if strings.Contains(name, query) || strings.Contains(description, strings.TrimPrefix(query, ":")) {
+			filtered = append(filtered, command)
+		}
+	}
+
+	return filtered
+}
+
+func (m *Model) syncCommandSelection() {
+	matches := m.filteredCommands()
+	if len(matches) == 0 {
+		m.commandIndex = 0
+		return
+	}
+
+	typed := strings.TrimSpace(m.input.Value())
+	for i, command := range matches {
+		if command.name == typed {
+			m.commandIndex = i
+			return
+		}
+	}
+
+	if m.commandIndex >= len(matches) {
+		m.commandIndex = len(matches) - 1
+	}
+}
+
+func (m *Model) moveCommandSelection(delta int) {
+	matches := m.filteredCommands()
+	if len(matches) == 0 {
+		m.commandIndex = 0
+		return
+	}
+
+	m.commandIndex = (m.commandIndex + delta + len(matches)) % len(matches)
+}
+
+func (m Model) commandPaletteView() string {
+	matches := m.filteredCommands()
+	if len(matches) == 0 {
+		return commandPaletteStyle.Render(errorStyle.Render("No matching commands"))
+	}
+
+	lines := make([]string, 0, len(matches))
+	for i, command := range matches {
+		line := fmt.Sprintf("%-8s %s", command.name, command.description)
+		if i == m.commandIndex {
+			lines = append(lines, commandSelectedStyle.Render(line))
+			continue
+		}
+
+		lines = append(lines, line)
+	}
+
+	return commandPaletteStyle.Render(strings.Join(lines, "\n"))
 }
