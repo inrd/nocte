@@ -28,6 +28,9 @@ var (
 	helpStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("8"))
 
+	metaStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("11"))
+
 	errorStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("9"))
 
@@ -68,6 +71,9 @@ type Model struct {
 	commandIndex int
 	noteIndex    int
 	noteMatches  []noteMatch
+	dialogNotes  []noteMatch
+	dialogIndex  int
+	dialogOffset int
 	editorPath   string
 	editorName   string
 	lastSaved    string
@@ -79,9 +85,11 @@ type command struct {
 }
 
 type noteMatch struct {
-	name  string
-	path  string
-	score int
+	name      string
+	path      string
+	score     int
+	charCount int
+	sizeBytes int64
 }
 
 func New(cfg config.Config, configPath string, version string) Model {
@@ -99,12 +107,14 @@ func New(cfg config.Config, configPath string, version string) Model {
 	editor.SetWidth(64)
 
 	return Model{
-		input:      input,
-		editor:     editor,
-		noteIndex:  -1,
-		config:     cfg,
-		configPath: configPath,
-		version:    version,
+		input:        input,
+		editor:       editor,
+		noteIndex:    -1,
+		dialogIndex:  -1,
+		dialogOffset: 0,
+		config:       cfg,
+		configPath:   configPath,
+		version:      version,
 	}
 }
 
@@ -112,6 +122,7 @@ var invalidFileChars = regexp.MustCompile(`[^a-z0-9._-]+`)
 var commands = []command{
 	{name: ":help", description: "Show available commands"},
 	{name: ":info", description: "Show app and path info"},
+	{name: ":list", description: "List existing notes"},
 	{name: ":quit", description: "Exit the app"},
 }
 
@@ -125,6 +136,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.width = msg.Width
 		m.height = msg.Height
 		m.resizeEditor()
+		if m.activeDialog == "list" {
+			m.syncDialogOffset()
+		}
 		return m, nil
 	case tea.KeyMsg:
 		if m.isEditing() {
@@ -149,10 +163,28 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			switch msg.String() {
 			case "ctrl+c":
 				return m, tea.Quit
-			case "esc", "enter":
-				m.activeDialog = ""
-				m.input.SetValue("")
-				m.input.Focus()
+			case "esc":
+				m.closeDialog()
+				return m, nil
+			case "up":
+				if m.activeDialog == "list" {
+					m.moveDialogSelection(-1)
+				}
+				return m, nil
+			case "down":
+				if m.activeDialog == "list" {
+					m.moveDialogSelection(1)
+				}
+				return m, nil
+			case "enter":
+				if m.activeDialog == "list" {
+					if err := m.openSelectedDialogNote(); err != nil {
+						m.status = err.Error()
+						m.isError = true
+					}
+					return m, nil
+				}
+				m.closeDialog()
 				return m, nil
 			}
 
@@ -330,6 +362,9 @@ func (m Model) handleCommand() (tea.Model, tea.Cmd) {
 		m.status = ""
 		m.isError = false
 		return m, nil
+	case ":list":
+		m.openListDialog()
+		return m, nil
 	case ":quit":
 		return m, tea.Quit
 	default:
@@ -363,6 +398,8 @@ func (m Model) dialogView() string {
 		return helpDialog()
 	case "info":
 		return infoDialog(m.version, m.configPath, m.config.NotesPath)
+	case "list":
+		return m.listDialog()
 	default:
 		return ""
 	}
@@ -375,6 +412,7 @@ func helpDialog() string {
 		"",
 		":help  Show this dialog",
 		":info  Show app and path info",
+		":list  List existing notes",
 		":quit  Exit the app",
 		"",
 		helpStyle.Render("Press Esc or Enter to close."),
@@ -396,6 +434,44 @@ func infoDialog(version string, configPath string, notesPath string) string {
 	)
 
 	return dialogStyle.Render(body)
+}
+
+func (m Model) listDialog() string {
+	lines := []string{
+		dialogTitleStyle.Render("Notes"),
+		"",
+	}
+
+	if len(m.dialogNotes) == 0 {
+		lines = append(lines, helpStyle.Render("No notes yet."))
+		lines = append(lines, "")
+		lines = append(lines, helpStyle.Render("Press Esc or Enter to close."))
+		return dialogStyle.Render(lipgloss.JoinVertical(lipgloss.Left, lines...))
+	}
+
+	start, end := m.dialogRange()
+	if start > 0 {
+		lines = append(lines, helpStyle.Render("..."))
+	}
+
+	for i := start; i < end; i++ {
+		note := m.dialogNotes[i]
+		line := fmt.Sprintf("%-34s %s", truncateText(note.name, 34), metaStyle.Render(noteMeta(note)))
+		if i == m.dialogIndex {
+			lines = append(lines, commandSelectedStyle.Render(line))
+			continue
+		}
+
+		lines = append(lines, line)
+	}
+
+	if end < len(m.dialogNotes) {
+		lines = append(lines, helpStyle.Render("..."))
+	}
+
+	lines = append(lines, "")
+	lines = append(lines, helpStyle.Render("Use Up and Down to choose. Press Enter to open or Esc to close."))
+	return dialogStyle.Render(lipgloss.JoinVertical(lipgloss.Left, lines...))
 }
 
 func (m Model) isCommandMode() bool {
@@ -525,6 +601,9 @@ func (m *Model) openEditor(path string, name string) {
 	m.commandIndex = 0
 	m.noteIndex = -1
 	m.noteMatches = nil
+	m.dialogNotes = nil
+	m.dialogIndex = -1
+	m.dialogOffset = 0
 	m.status = fmt.Sprintf("Editing %s", name)
 	m.isError = false
 }
@@ -589,6 +668,15 @@ func (m *Model) syncLauncherState() {
 	m.noteIndex = -1
 }
 
+func (m *Model) closeDialog() {
+	m.activeDialog = ""
+	m.dialogNotes = nil
+	m.dialogIndex = -1
+	m.dialogOffset = 0
+	m.input.SetValue("")
+	m.input.Focus()
+}
+
 func (m *Model) moveNoteSelection(delta int) {
 	if len(m.noteMatches) == 0 {
 		m.noteIndex = -1
@@ -617,11 +705,85 @@ func (m *Model) openExistingNote(note noteMatch) error {
 	return nil
 }
 
-func (m Model) findNoteMatches(query string) []noteMatch {
-	if query == "" {
+func (m *Model) openListDialog() {
+	m.activeDialog = "list"
+	m.dialogNotes = m.listNotes()
+	m.dialogIndex = -1
+	m.dialogOffset = 0
+	if len(m.dialogNotes) > 0 {
+		m.dialogIndex = 0
+	}
+	m.input.SetValue(":list")
+	m.input.Blur()
+	m.status = ""
+	m.isError = false
+}
+
+func (m *Model) moveDialogSelection(delta int) {
+	if len(m.dialogNotes) == 0 {
+		m.dialogIndex = -1
+		m.dialogOffset = 0
+		return
+	}
+
+	m.dialogIndex = (m.dialogIndex + delta + len(m.dialogNotes)) % len(m.dialogNotes)
+	m.syncDialogOffset()
+}
+
+func (m *Model) openSelectedDialogNote() error {
+	if len(m.dialogNotes) == 0 {
+		m.closeDialog()
 		return nil
 	}
 
+	if m.dialogIndex < 0 || m.dialogIndex >= len(m.dialogNotes) {
+		m.dialogIndex = 0
+	}
+
+	return m.openExistingNote(m.dialogNotes[m.dialogIndex])
+}
+
+func (m *Model) syncDialogOffset() {
+	visible := m.dialogVisibleCount()
+	if visible <= 0 {
+		m.dialogOffset = 0
+		return
+	}
+
+	maxOffset := max(0, len(m.dialogNotes)-visible)
+	if m.dialogOffset > maxOffset {
+		m.dialogOffset = maxOffset
+	}
+
+	if m.dialogIndex < m.dialogOffset {
+		m.dialogOffset = m.dialogIndex
+	}
+
+	if m.dialogIndex >= m.dialogOffset+visible {
+		m.dialogOffset = m.dialogIndex - visible + 1
+	}
+}
+
+func (m Model) dialogRange() (int, int) {
+	visible := m.dialogVisibleCount()
+	if visible <= 0 || len(m.dialogNotes) <= visible {
+		return 0, len(m.dialogNotes)
+	}
+
+	start := max(0, m.dialogOffset)
+	end := min(len(m.dialogNotes), start+visible)
+	return start, end
+}
+
+func (m Model) dialogVisibleCount() int {
+	if m.height <= 0 {
+		return 10
+	}
+
+	return max(3, m.height-10)
+}
+
+func (m Model) findNoteMatches(query string) []noteMatch {
 	entries, err := os.ReadDir(m.config.NotesPath)
 	if err != nil {
 		return nil
@@ -638,26 +800,82 @@ func (m Model) findNoteMatches(query string) []noteMatch {
 			continue
 		}
 
-		score, ok := fuzzyScore(strings.TrimSuffix(name, filepath.Ext(name)), query)
-		if !ok {
+		path := filepath.Join(m.config.NotesPath, name)
+		info, err := entry.Info()
+		if err != nil {
+			continue
+		}
+
+		content, err := os.ReadFile(path)
+		if err != nil {
 			continue
 		}
 
 		matches = append(matches, noteMatch{
-			name:  name,
-			path:  filepath.Join(m.config.NotesPath, name),
-			score: score,
+			name:      name,
+			path:      path,
+			charCount: len([]rune(string(content))),
+			sizeBytes: info.Size(),
 		})
 	}
 
-	sort.Slice(matches, func(i int, j int) bool {
-		if matches[i].score == matches[j].score {
+	if query == "" {
+		sort.Slice(matches, func(i int, j int) bool {
 			return matches[i].name < matches[j].name
+		})
+		return matches
+	}
+
+	filtered := make([]noteMatch, 0, len(matches))
+	for _, note := range matches {
+		score, ok := fuzzyScore(strings.TrimSuffix(note.name, filepath.Ext(note.name)), query)
+		if !ok {
+			continue
 		}
-		return matches[i].score < matches[j].score
+
+		note.score = score
+		filtered = append(filtered, note)
+	}
+
+	sort.Slice(filtered, func(i int, j int) bool {
+		if filtered[i].score == filtered[j].score {
+			return filtered[i].name < filtered[j].name
+		}
+		return filtered[i].score < filtered[j].score
 	})
 
-	return matches
+	return filtered
+}
+
+func (m Model) listNotes() []noteMatch {
+	return m.findNoteMatches("")
+}
+
+func noteMeta(note noteMatch) string {
+	return fmt.Sprintf("%d chars | %s", note.charCount, humanSize(note.sizeBytes))
+}
+
+func humanSize(size int64) string {
+	kb := float64(size) / 1024
+	if kb < 1024 {
+		return fmt.Sprintf("%.1f KB", kb)
+	}
+
+	mb := kb / 1024
+	return fmt.Sprintf("%.1f MB", mb)
+}
+
+func truncateText(value string, width int) string {
+	runes := []rune(value)
+	if len(runes) <= width {
+		return value
+	}
+
+	if width <= 3 {
+		return string(runes[:width])
+	}
+
+	return string(runes[:width-3]) + "..."
 }
 
 func fuzzyScore(candidate string, query string) (int, bool) {

@@ -7,6 +7,7 @@ It currently focuses on a fast keyboard-first flow:
 - Type a note name in the launcher to fuzzy-search existing notes.
 - Use `Up` and `Down` to select a matching note when you want to open one.
 - Press `Enter` with a selected note to open it.
+- Run `:list` to browse all existing notes in a dialog, including character count and file size, and open one directly.
 - Press `Enter` without selecting a note to create a new one.
 - Edit the note immediately in a simple plain-text editor.
 - Changes autosave as you type.
@@ -16,6 +17,7 @@ It currently focuses on a fast keyboard-first flow:
 
 - Lightweight local-first note creation
 - Fuzzy note search in the launcher
+- Existing-note list dialog with metadata and scrolling for direct browsing
 - Plain Markdown files on disk
 - Filename sanitization for new notes
 - Protection against overwriting existing notes
@@ -25,6 +27,7 @@ It currently focuses on a fast keyboard-first flow:
 
 - `:help` shows available commands
 - `:info` shows version and path information
+- `:list` shows all existing notes in a selectable dialog
 - `:quit` exits the app
 
 ## Paths
@@ -53,4 +56,4 @@ The `Makefile` sets workspace-local `GOCACHE` and `GOMODCACHE`.
 
 ## Status
 
-The app is intentionally early and evolving in small, reversible steps. The current editor is plain text only, with room to grow into richer note search and open flows later.
+The app is intentionally early and evolving in small, reversible steps. The current editor is plain text only, with room to grow into richer note browsing and command flows later.
