@@ -1,6 +1,10 @@
 package app
 
 import (
+	"fmt"
+	"os"
+	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/textinput"
@@ -19,12 +23,20 @@ var (
 
 	helpStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("8"))
+
+	errorStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("9"))
+
+	successStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("10"))
 )
 
 type Model struct {
-	input  textinput.Model
-	width  int
-	height int
+	input   textinput.Model
+	width   int
+	height  int
+	status  string
+	isError bool
 }
 
 func New() Model {
@@ -38,6 +50,8 @@ func New() Model {
 		input: input,
 	}
 }
+
+var invalidFileChars = regexp.MustCompile(`[^a-z0-9._-]+`)
 
 func (m Model) Init() tea.Cmd {
 	return textinput.Blink
@@ -53,6 +67,33 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 		case "ctrl+c", "esc":
 			return m, tea.Quit
+		case "enter":
+			filename, err := sanitizeFilename(m.input.Value())
+			if err != nil {
+				m.status = err.Error()
+				m.isError = true
+				return m, nil
+			}
+
+			path := filepath.Join(".", filename+".md")
+			file, err := os.OpenFile(path, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o644)
+			if err != nil {
+				if os.IsExist(err) {
+					m.status = fmt.Sprintf("%s already exists", filename+".md")
+					m.isError = true
+					return m, nil
+				}
+
+				m.status = fmt.Sprintf("Could not create note: %v", err)
+				m.isError = true
+				return m, nil
+			}
+			_ = file.Close()
+
+			m.status = fmt.Sprintf("Created %s", filename+".md")
+			m.isError = false
+			m.input.SetValue("")
+			return m, nil
 		}
 	}
 
@@ -63,8 +104,18 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m Model) View() string {
 	inputBox := inputStyle.Render(m.input.View())
-	help := helpStyle.Render("Dummy input bar for now. Esc quits.")
-	content := lipgloss.JoinVertical(lipgloss.Center, inputBox, help)
+	help := helpStyle.Render("Type a note name and press Enter. Esc quits.")
+
+	status := ""
+	switch {
+	case m.status == "":
+	case m.isError:
+		status = errorStyle.Render(m.status)
+	default:
+		status = successStyle.Render(m.status)
+	}
+
+	content := lipgloss.JoinVertical(lipgloss.Center, inputBox, help, status)
 
 	if m.width == 0 || m.height == 0 {
 		return docStyle.Render(content)
@@ -74,4 +125,22 @@ func (m Model) View() string {
 	vertical := lipgloss.PlaceVertical(m.height, lipgloss.Center, horizontal)
 
 	return docStyle.Render(strings.TrimRight(vertical, "\n"))
+}
+
+func sanitizeFilename(input string) (string, error) {
+	trimmed := strings.TrimSpace(input)
+	if trimmed == "" {
+		return "", fmt.Errorf("Note name cannot be blank")
+	}
+
+	normalized := strings.ToLower(trimmed)
+	normalized = strings.ReplaceAll(normalized, " ", "-")
+	normalized = invalidFileChars.ReplaceAllString(normalized, "-")
+	normalized = strings.Trim(normalized, "-.")
+
+	if normalized == "" {
+		return "", fmt.Errorf("Note name must contain letters or numbers")
+	}
+
+	return normalized, nil
 }
