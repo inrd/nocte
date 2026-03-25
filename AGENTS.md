@@ -5,6 +5,7 @@
 `not` is a small Go TUI note app inspired by nvALT.
 
 The project should evolve in small, reversible steps. Favor simple implementations that leave room for iteration over premature architecture or polished abstractions.
+Keep this file up to date on each iteration of the codebase so it remains a reliable snapshot of current behavior and expectations.
 
 ## Current Direction
 
@@ -25,6 +26,9 @@ The project should evolve in small, reversible steps. Favor simple implementatio
 ## Important Behavior
 
 - New notes are created from the main input.
+- Pressing Enter on a new note name should create the file and immediately open an editor view for that note.
+- The initial note editor is plain text only and autosaves as content changes.
+- Pressing `Esc` in the editor should return to the main launcher input.
 - Filenames are sanitized before writing.
 - Whitespace-only note names are invalid.
 - Note creation must never overwrite an existing file.

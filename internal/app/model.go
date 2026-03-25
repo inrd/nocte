@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/charmbracelet/bubbles/textarea"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -54,6 +55,7 @@ var (
 
 type Model struct {
 	input        textinput.Model
+	editor       textarea.Model
 	width        int
 	height       int
 	status       string
@@ -63,6 +65,9 @@ type Model struct {
 	version      string
 	activeDialog string
 	commandIndex int
+	editorPath   string
+	editorName   string
+	lastSaved    string
 }
 
 type command struct {
@@ -77,8 +82,16 @@ func New(cfg config.Config, configPath string, version string) Model {
 	input.Focus()
 	input.Width = 48
 
+	editor := textarea.New()
+	editor.Placeholder = "Start writing..."
+	editor.Prompt = ""
+	editor.ShowLineNumbers = false
+	editor.SetHeight(12)
+	editor.SetWidth(64)
+
 	return Model{
 		input:      input,
+		editor:     editor,
 		config:     cfg,
 		configPath: configPath,
 		version:    version,
@@ -101,8 +114,27 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
+		m.resizeEditor()
 		return m, nil
 	case tea.KeyMsg:
+		if m.isEditing() {
+			switch msg.String() {
+			case "ctrl+c":
+				return m, tea.Quit
+			case "esc":
+				m.closeEditor()
+				return m, nil
+			}
+
+			before := m.editor.Value()
+			var cmd tea.Cmd
+			m.editor, cmd = m.editor.Update(msg)
+			if m.editor.Value() != before {
+				m.saveEditor()
+			}
+			return m, cmd
+		}
+
 		if m.activeDialog != "" {
 			switch msg.String() {
 			case "ctrl+c":
@@ -163,9 +195,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			_ = file.Close()
 
+			m.openEditor(path, filename+".md")
 			m.status = fmt.Sprintf("Created %s", filename+".md")
 			m.isError = false
-			m.input.SetValue("")
 			return m, nil
 		}
 	}
@@ -177,6 +209,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) View() string {
+	if m.isEditing() {
+		return m.editorView()
+	}
+
 	inputBox := inputStyle.Render(m.input.View())
 	help := helpStyle.Render("Type a note name and press Enter. Type :help for commands. Use :quit or Esc to quit.")
 
@@ -212,6 +248,32 @@ func (m Model) View() string {
 		return docStyle.Render(strings.TrimRight(lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, m.dialogView()), "\n"))
 	}
 
+	return docStyle.Render(strings.TrimRight(vertical, "\n"))
+}
+
+func (m Model) editorView() string {
+	header := dialogTitleStyle.Render(m.editorName)
+	pathLine := helpStyle.Render(m.editorPath)
+	editorBox := inputStyle.Render(m.editor.View())
+	help := helpStyle.Render("Plain text editor. Autosaves as you type. Press Esc to return, Ctrl+C to quit.")
+
+	status := ""
+	switch {
+	case m.status == "":
+	case m.isError:
+		status = errorStyle.Render(m.status)
+	default:
+		status = successStyle.Render(m.status)
+	}
+
+	content := lipgloss.JoinVertical(lipgloss.Left, header, pathLine, "", editorBox, help, status)
+
+	if m.width == 0 || m.height == 0 {
+		return docStyle.Render(content)
+	}
+
+	horizontal := lipgloss.PlaceHorizontal(m.width, lipgloss.Center, content)
+	vertical := lipgloss.PlaceVertical(m.height, lipgloss.Center, horizontal)
 	return docStyle.Render(strings.TrimRight(vertical, "\n"))
 }
 
@@ -380,4 +442,69 @@ func (m Model) commandPaletteView() string {
 	}
 
 	return commandPaletteStyle.Render(strings.Join(lines, "\n"))
+}
+
+func (m Model) isEditing() bool {
+	return m.editorPath != ""
+}
+
+func (m *Model) openEditor(path string, name string) {
+	m.editorPath = path
+	m.editorName = name
+	m.lastSaved = ""
+	m.editor.SetValue("")
+	m.editor.Focus()
+	m.resizeEditor()
+	m.input.SetValue("")
+	m.input.Blur()
+	m.activeDialog = ""
+	m.commandIndex = 0
+	m.status = fmt.Sprintf("Editing %s", name)
+	m.isError = false
+}
+
+func (m *Model) closeEditor() {
+	name := m.editorName
+	m.editorPath = ""
+	m.editorName = ""
+	m.lastSaved = ""
+	m.editor.SetValue("")
+	m.editor.Blur()
+	m.input.SetValue("")
+	m.input.Focus()
+	m.status = fmt.Sprintf("Closed %s", name)
+	m.isError = false
+}
+
+func (m *Model) resizeEditor() {
+	width := 64
+	height := 12
+
+	if m.width > 0 {
+		width = max(24, m.width-12)
+	}
+
+	if m.height > 0 {
+		height = max(8, m.height-10)
+	}
+
+	m.editor.SetWidth(width)
+	m.editor.SetHeight(height)
+}
+
+func (m *Model) saveEditor() {
+	content := m.editor.Value()
+	if content == m.lastSaved {
+		return
+	}
+
+	if err := os.WriteFile(m.editorPath, []byte(content), 0o644); err != nil {
+		m.status = fmt.Sprintf("Could not save %s: %v", m.editorName, err)
+		m.isError = true
+		return
+	}
+
+	m.lastSaved = content
+	m.status = fmt.Sprintf("Autosaved %s", m.editorName)
+	m.isError = false
 }
