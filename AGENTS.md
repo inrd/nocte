@@ -38,6 +38,7 @@ Keep `README.md` focused on meaningful user-facing capabilities and workflow. Av
 - In the `:list` dialog, `Up` and `Down` should move through the full note list, scrolling when needed, and `Enter` should open the selected note in the editor.
 - Pressing Enter on a new note name should create the file and immediately open an editor view for that note.
 - Pressing `Enter` without a selected note match should keep the create-new-note behavior.
+- Leaving a newly created note empty and exiting the editor should delete that note instead of saving an empty file.
 - The initial note editor is plain text only and saves when the editor closes.
 - The editor can show a toggleable live Markdown preview, controlled by keyboard shortcut and documented below the editor.
 - Pressing `Ctrl+L` in the editor should open a dialog listing links found in the current note, with visually distinct labels and URLs, and pressing `Enter` on a selected link should open it in the default web browser.

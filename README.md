@@ -9,7 +9,7 @@
 - Browse all notes with `:list`
 - Edit notes in a plain text editor with an optional live Markdown preview
 - Open note links from the editor with a keyboard shortcut
-- Notes are automatically saved on editor exit
+- Notes are automatically saved on editor exit, except brand-new untouched empty notes, which are discarded
 
 ## How To Use It
 

@@ -23,6 +23,7 @@ func (m *Model) openEditor(path string, name string) {
 	m.editorPath = path
 	m.editorName = name
 	m.lastSaved = string(content)
+	m.editorCreated = false
 	m.editor.SetValue(m.lastSaved)
 	m.editor.Focus()
 	m.resizeEditor()
@@ -46,6 +47,7 @@ func (m *Model) closeEditor() {
 	m.editorPath = ""
 	m.editorName = ""
 	m.lastSaved = ""
+	m.editorCreated = false
 	m.editorAction = ""
 	m.editor.SetValue("")
 	m.editor.Blur()
@@ -62,6 +64,7 @@ func (m *Model) discardEditor() {
 	m.editorPath = ""
 	m.editorName = ""
 	m.lastSaved = ""
+	m.editorCreated = false
 	m.editorAction = ""
 	m.editor.SetValue("")
 	m.editor.Blur()
@@ -105,7 +108,48 @@ func (m *Model) saveEditor() error {
 	return nil
 }
 
+func (m *Model) discardEmptyCreatedNote() (bool, error) {
+	if !m.editorCreated || m.editor.Value() != "" || m.lastSaved != "" {
+		return false, nil
+	}
+
+	content, err := os.ReadFile(m.editorPath)
+	if err != nil {
+		return false, fmt.Errorf("could not check %s before closing: %w", m.editorName, err)
+	}
+	if len(content) != 0 {
+		return false, nil
+	}
+
+	if err := os.Remove(m.editorPath); err != nil {
+		return false, fmt.Errorf("could not remove empty note %s: %w", m.editorName, err)
+	}
+
+	m.status = fmt.Sprintf("Discarded empty note %s", m.editorName)
+	m.isError = false
+	return true, nil
+}
+
 func (m *Model) finishEditing(action string) bool {
+	discarded, err := m.discardEmptyCreatedNote()
+	if err != nil {
+		m.activeDialog = "save-error"
+		m.editorAction = action
+		m.status = err.Error()
+		m.isError = true
+		return false
+	}
+	if discarded {
+		name := m.editorName
+		if action == "quit" {
+			m.editorAction = ""
+			return true
+		}
+		m.closeEditor()
+		m.status = fmt.Sprintf("Discarded empty note %s", name)
+		return false
+	}
+
 	if err := m.saveEditor(); err != nil {
 		m.activeDialog = "save-error"
 		m.editorAction = action

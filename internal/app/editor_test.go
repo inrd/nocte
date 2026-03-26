@@ -63,6 +63,61 @@ func TestUpdateEscWhileEditingSavesAndClosesEditor(t *testing.T) {
 	}
 }
 
+func TestUpdateEscDeletesEmptyNewNote(t *testing.T) {
+	tmpDir := t.TempDir()
+	model := New(config.Config{NotesPath: tmpDir}, "", "test")
+	model.input.SetValue("Scratch")
+
+	model = updateModel(t, model, tea.KeyMsg{Type: tea.KeyEnter})
+	model = updateModel(t, model, tea.KeyMsg{Type: tea.KeyEsc})
+
+	notePath := filepath.Join(tmpDir, "scratch.md")
+	if model.isEditing() {
+		t.Fatalf("model should not be editing after escape")
+	}
+	if model.status != "Discarded empty note scratch.md" {
+		t.Fatalf("status = %q, want %q", model.status, "Discarded empty note scratch.md")
+	}
+	if _, err := os.Stat(notePath); !os.IsNotExist(err) {
+		t.Fatalf("Stat(%q) error = %v, want not exist", notePath, err)
+	}
+}
+
+func TestUpdateEscKeepsNewNoteWhenEditorHasContent(t *testing.T) {
+	tmpDir := t.TempDir()
+	model := New(config.Config{NotesPath: tmpDir}, "", "test")
+	model.input.SetValue("Scratch")
+
+	model = updateModel(t, model, tea.KeyMsg{Type: tea.KeyEnter})
+	model.editor.SetValue("hello")
+	model = updateModel(t, model, tea.KeyMsg{Type: tea.KeyEsc})
+
+	notePath := filepath.Join(tmpDir, "scratch.md")
+	data, err := os.ReadFile(notePath)
+	if err != nil {
+		t.Fatalf("ReadFile(%q) error = %v", notePath, err)
+	}
+	if string(data) != "hello" {
+		t.Fatalf("saved content = %q, want %q", string(data), "hello")
+	}
+}
+
+func TestUpdateEscKeepsExistingEmptyNote(t *testing.T) {
+	tmpDir := t.TempDir()
+	notePath := writeTestNote(t, tmpDir, "empty.md", "")
+
+	model := New(config.Config{NotesPath: tmpDir}, "", "test")
+	model.openEditor(notePath, "empty.md")
+	model = updateModel(t, model, tea.KeyMsg{Type: tea.KeyEsc})
+
+	if _, err := os.Stat(notePath); err != nil {
+		t.Fatalf("Stat(%q) error = %v, want file to remain", notePath, err)
+	}
+	if model.status != "Saved and closed empty.md" {
+		t.Fatalf("status = %q, want %q", model.status, "Saved and closed empty.md")
+	}
+}
+
 func TestUpdateCtrlPTogglesPreviewWhileEditing(t *testing.T) {
 	tmpDir := t.TempDir()
 	notePath := writeTestNote(t, tmpDir, "draft.md", "# Title\n\n- item")

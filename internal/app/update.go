@@ -217,6 +217,7 @@ func (m Model) createNoteFromInput() (tea.Model, tea.Cmd) {
 	_ = file.Close()
 
 	m.openEditor(path, filename+".md")
+	m.editorCreated = true
 	m.status = fmt.Sprintf("Created %s", filename+".md")
 	m.isError = false
 	return m, nil

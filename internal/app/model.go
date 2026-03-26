@@ -137,6 +137,7 @@ type Model struct {
 	editorPath     string
 	editorName     string
 	lastSaved      string
+	editorCreated  bool
 	editorAction   string
 	previewEnabled bool
 }
