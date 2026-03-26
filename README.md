@@ -17,13 +17,13 @@
 - Press `Up` or `Down` to move through matches
 - Press `Enter` on a selected match to open it
 - Press `Enter` without selecting a match to create a new note
-- Use `:list` to browse every note with character count and file size metadata
+- Use `:list` to browse every note sorted by last update, with a green updated timestamp plus character count and file size metadata
 
 ## Commands
 
 - `:help` shows available commands
 - `:info` shows version and path information
-- `:list` shows all existing notes in a selectable dialog
+- `:list` shows all existing notes in a selectable dialog sorted by last update
 - `:quit` exits the app
 
 ## Paths

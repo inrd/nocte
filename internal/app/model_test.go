@@ -1,9 +1,11 @@
 package app
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 
@@ -118,6 +120,62 @@ func TestFindNoteMatchesEmptyQueryReturnsAlphabeticalList(t *testing.T) {
 		if matches[i].name != want {
 			t.Fatalf("matches[%d].name = %q, want %q", i, matches[i].name, want)
 		}
+	}
+}
+
+func TestListNotesReturnsMostRecentlyUpdatedFirst(t *testing.T) {
+	tmpDir := t.TempDir()
+	oldestPath := writeTestNote(t, tmpDir, "oldest.md", "a")
+	middlePath := writeTestNote(t, tmpDir, "middle.md", "bb")
+	newestPath := writeTestNote(t, tmpDir, "newest.md", "ccc")
+
+	now := time.Now()
+	mustSetModTime(t, oldestPath, now.Add(-48*time.Hour))
+	mustSetModTime(t, middlePath, now.Add(-6*time.Hour))
+	mustSetModTime(t, newestPath, now.Add(-1*time.Hour))
+
+	model := New(config.Config{NotesPath: tmpDir}, "", "test")
+
+	notes := model.listNotes()
+	if len(notes) != 3 {
+		t.Fatalf("len(notes) = %d, want 3", len(notes))
+	}
+
+	wantOrder := []string{"newest.md", "middle.md", "oldest.md"}
+	for i, want := range wantOrder {
+		if notes[i].name != want {
+			t.Fatalf("notes[%d].name = %q, want %q", i, notes[i].name, want)
+		}
+	}
+}
+
+func TestFormatNoteUpdatedAt(t *testing.T) {
+	now := time.Now()
+	today := time.Date(now.Year(), now.Month(), now.Day(), 14, 5, 0, 0, now.Location())
+	yesterday := today.AddDate(0, 0, -1)
+	sameYear := time.Date(now.Year(), now.Month(), 1, 15, 4, 0, 0, now.Location())
+	if sameDay(sameYear, today) || sameDay(sameYear, yesterday) {
+		sameYear = sameYear.AddDate(0, -1, 0)
+	}
+	otherYear := time.Date(now.Year()-1, time.January, 2, 15, 4, 0, 0, now.Location())
+
+	tests := []struct {
+		name    string
+		modTime time.Time
+		want    string
+	}{
+		{name: "today", modTime: today, want: "Today 14:05"},
+		{name: "yesterday", modTime: yesterday, want: "Yest 14:05"},
+		{name: "same year", modTime: sameYear, want: sameYear.Format("Jan 2 15:04")},
+		{name: "other year", modTime: otherYear, want: fmt.Sprintf("Jan 2 %d 15:04", now.Year()-1)},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := formatNoteUpdatedAt(tt.modTime); got != tt.want {
+				t.Fatalf("formatNoteUpdatedAt(%v) = %q, want %q", tt.modTime, got, tt.want)
+			}
+		})
 	}
 }
 
@@ -239,10 +297,13 @@ func TestUpdateEscWhileEditingSavesAndClosesEditor(t *testing.T) {
 
 func TestUpdateListDialogCanOpenSelectedNote(t *testing.T) {
 	tmpDir := t.TempDir()
-	writeTestNote(t, tmpDir, "alpha.md", "a")
-	secondPath := filepath.Join(tmpDir, "middle.md")
-	writeTestNote(t, tmpDir, "middle.md", "m")
-	writeTestNote(t, tmpDir, "zebra.md", "z")
+	oldestPath := writeTestNote(t, tmpDir, "alpha.md", "a")
+	secondPath := writeTestNote(t, tmpDir, "middle.md", "m")
+	newestPath := writeTestNote(t, tmpDir, "zebra.md", "z")
+	now := time.Now()
+	mustSetModTime(t, oldestPath, now.Add(-72*time.Hour))
+	mustSetModTime(t, secondPath, now.Add(-24*time.Hour))
+	mustSetModTime(t, newestPath, now.Add(-1*time.Hour))
 
 	model := New(config.Config{NotesPath: tmpDir}, "", "test")
 	model.input.SetValue(":list")
@@ -290,11 +351,21 @@ func updateModel(t *testing.T, model Model, msg tea.Msg) Model {
 	return next
 }
 
-func writeTestNote(t *testing.T, dir string, name string, content string) {
+func writeTestNote(t *testing.T, dir string, name string, content string) string {
 	t.Helper()
 
 	path := filepath.Join(dir, name)
 	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
 		t.Fatalf("WriteFile(%q) error = %v", path, err)
+	}
+
+	return path
+}
+
+func mustSetModTime(t *testing.T, path string, modTime time.Time) {
+	t.Helper()
+
+	if err := os.Chtimes(path, modTime, modTime); err != nil {
+		t.Fatalf("Chtimes(%q) error = %v", path, err)
 	}
 }

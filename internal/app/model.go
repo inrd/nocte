@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/charmbracelet/bubbles/textarea"
 	"github.com/charmbracelet/bubbles/textinput"
@@ -56,6 +57,13 @@ var (
 	commandSelectedStyle = lipgloss.NewStyle().
 				Foreground(lipgloss.Color("0")).
 				Background(lipgloss.Color("12"))
+
+	listNameStyle = lipgloss.NewStyle().
+			Width(24)
+
+	listUpdatedStyle = lipgloss.NewStyle().
+				Width(15).
+				MarginRight(3)
 )
 
 type Model struct {
@@ -92,6 +100,7 @@ type noteMatch struct {
 	score     int
 	charCount int
 	sizeBytes int64
+	modTime   time.Time
 }
 
 func New(cfg config.Config, configPath string, version string) Model {
@@ -484,7 +493,12 @@ func (m Model) listDialog() string {
 
 	for i := start; i < end; i++ {
 		note := m.dialogNotes[i]
-		line := fmt.Sprintf("%-34s %s", truncateText(note.name, 34), metaStyle.Render(noteMeta(note)))
+		line := lipgloss.JoinHorizontal(
+			lipgloss.Left,
+			listNameStyle.Render(truncateText(note.name, 24)),
+			listUpdatedStyle.Render(successStyle.Render(formatNoteUpdatedAt(note.modTime))),
+			metaStyle.Render(noteMeta(note)),
+		)
 		if i == m.dialogIndex {
 			lines = append(lines, commandSelectedStyle.Render(line))
 			continue
@@ -909,6 +923,7 @@ func (m Model) findNoteMatches(query string) []noteMatch {
 			path:      path,
 			charCount: len([]rune(string(content))),
 			sizeBytes: info.Size(),
+			modTime:   info.ModTime(),
 		})
 	}
 
@@ -941,11 +956,47 @@ func (m Model) findNoteMatches(query string) []noteMatch {
 }
 
 func (m Model) listNotes() []noteMatch {
-	return m.findNoteMatches("")
+	notes := m.findNoteMatches("")
+	sort.Slice(notes, func(i int, j int) bool {
+		if notes[i].modTime.Equal(notes[j].modTime) {
+			return notes[i].name < notes[j].name
+		}
+
+		return notes[i].modTime.After(notes[j].modTime)
+	})
+
+	return notes
 }
 
 func noteMeta(note noteMatch) string {
 	return fmt.Sprintf("%d chars | %s", note.charCount, humanSize(note.sizeBytes))
+}
+
+func formatNoteUpdatedAt(modTime time.Time) string {
+	if modTime.IsZero() {
+		return "Unknown"
+	}
+
+	now := time.Now().In(modTime.Location())
+	if sameDay(modTime, now) {
+		return fmt.Sprintf("Today %s", modTime.Format("15:04"))
+	}
+
+	if sameDay(modTime, now.AddDate(0, 0, -1)) {
+		return fmt.Sprintf("Yest %s", modTime.Format("15:04"))
+	}
+
+	if modTime.Year() == now.Year() {
+		return modTime.Format("Jan 2 15:04")
+	}
+
+	return modTime.Format("Jan 2 2006 15:04")
+}
+
+func sameDay(a time.Time, b time.Time) bool {
+	ay, am, ad := a.Date()
+	by, bm, bd := b.Date()
+	return ay == by && am == bm && ad == bd
 }
 
 func humanSize(size int64) string {
