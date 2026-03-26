@@ -66,8 +66,15 @@ The repo uses workspace-local `GOCACHE` and `GOMODCACHE` through the `Makefile`.
 - Do not introduce large frameworks or complex abstractions early.
 - Keep UI text concise and practical.
 - Preserve cross-platform behavior for macOS and Linux.
+- Keep repo content free of machine-specific absolute paths and other personal local environment details.
 - Add or update tests when introducing new behavior or changing existing behavior.
 - When adding commands, make them discoverable through `:help`.
+
+## Public Repo Hygiene
+
+- Keep the Go module path aligned with the published GitHub repository path.
+- Prefer `~`-based or other portable path examples in docs and user-facing text instead of machine-specific absolute paths.
+- Avoid committing personal local environment details unless they are intentionally part of project ownership metadata such as the license copyright.
 
 ## Near-Term Priorities
 

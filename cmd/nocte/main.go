@@ -6,8 +6,8 @@ import (
 
 	"github.com/charmbracelet/bubbletea"
 
-	"github.com/thomas/nocte/internal/app"
-	"github.com/thomas/nocte/internal/config"
+	"github.com/inrd/nocte/internal/app"
+	"github.com/inrd/nocte/internal/config"
 )
 
 const version = "0.1.0"

@@ -16,7 +16,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
-	"github.com/thomas/nocte/internal/config"
+	"github.com/inrd/nocte/internal/config"
 )
 
 const largeNoteWarningThreshold int64 = 10 * 1024 * 1024

@@ -1,4 +1,4 @@
-module github.com/thomas/nocte
+module github.com/inrd/nocte
 
 go 1.25.0
 

@@ -10,7 +10,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	"github.com/thomas/nocte/internal/config"
+	"github.com/inrd/nocte/internal/config"
 )
 
 func TestSanitizeFilename(t *testing.T) {
