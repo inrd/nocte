@@ -315,3 +315,31 @@ func TestRenderMarkdownPreviewKeepsWrappedInlineCodeStyled(t *testing.T) {
 		t.Fatalf("renderMarkdownPreview() missing wrapped inline code continuation: %q", rendered)
 	}
 }
+
+func TestRenderMarkdownPreviewKeepsNestedListIndentation(t *testing.T) {
+	rendered := renderMarkdownPreview("- parent\n    - child\n        - nested\n- another root", 28)
+
+	if !strings.Contains(rendered, "• parent") {
+		t.Fatalf("renderMarkdownPreview() missing root bullet: %q", rendered)
+	}
+	if !strings.Contains(rendered, "    • child") {
+		t.Fatalf("renderMarkdownPreview() missing nested bullet indentation: %q", rendered)
+	}
+	if !strings.Contains(rendered, "        • nested") {
+		t.Fatalf("renderMarkdownPreview() missing deeper nested bullet indentation: %q", rendered)
+	}
+	if !strings.Contains(rendered, "\n• another root") {
+		t.Fatalf("renderMarkdownPreview() missing second root bullet: %q", rendered)
+	}
+}
+
+func TestRenderMarkdownPreviewKeepsOrderedListIndentationAndWrap(t *testing.T) {
+	rendered := renderMarkdownPreview("  12. this ordered item wraps onto the next preview line", 18)
+
+	if !strings.Contains(rendered, "  12. this ordered") {
+		t.Fatalf("renderMarkdownPreview() missing ordered list marker: %q", rendered)
+	}
+	if !strings.Contains(rendered, "\n      item wraps") {
+		t.Fatalf("renderMarkdownPreview() missing ordered list continuation alignment: %q", rendered)
+	}
+}

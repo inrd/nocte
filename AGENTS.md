@@ -41,7 +41,7 @@ Keep `README.md` focused on meaningful user-facing capabilities and workflow. Av
 - Pressing `Enter` without a selected note match should keep the create-new-note behavior.
 - Leaving a newly created note empty and exiting the editor should delete that note instead of saving an empty file.
 - The initial note editor is plain text only, saves on close when content changed, and otherwise closes without rewriting the file.
-- The editor can show a toggleable live Markdown preview, controlled by keyboard shortcut and documented below the editor.
+- The editor can show a toggleable live Markdown preview, controlled by keyboard shortcut and documented below the editor, including nested Markdown list indentation.
 - Pressing `Ctrl+L` in the editor should open a dialog listing links found in the current note, with visually distinct labels and URLs, and pressing `Enter` on a selected link should open it in the default web browser.
 - The editor must support long notes without truncating content.
 - The editor footer should show the current note size and warn when a very large note may slow editing or saving.

@@ -4,6 +4,7 @@ import (
 	"strconv"
 	"strings"
 	"unicode"
+	"unicode/utf8"
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/ansi"
@@ -118,10 +119,16 @@ func renderMarkdownPreviewLines(content string, width int) ([]string, []int) {
 		case strings.HasPrefix(trimmed, ">"):
 			text := strings.TrimSpace(strings.TrimPrefix(trimmed, ">"))
 			rendered = appendPrefixedWrapped(rendered, previewQuoteStyle, "│ ", "│ ", text, width)
-		case isBulletLine(trimmed):
-			rendered = appendPrefixedWrapped(rendered, lipgloss.NewStyle(), "• ", "  ", strings.TrimSpace(trimmed[2:]), width)
-		case isNumberedLine(trimmed):
-			rendered = appendWrapped(rendered, lipgloss.NewStyle(), trimmed, width)
+		case isBulletLine(line):
+			indent, markerWidth, content := parseBulletLine(line)
+			prefix := strings.Repeat(" ", indent) + "• "
+			continuationPrefix := strings.Repeat(" ", indent+markerWidth)
+			rendered = appendPrefixedWrapped(rendered, lipgloss.NewStyle(), prefix, continuationPrefix, content, width)
+		case isNumberedLine(line):
+			indent, marker, content := parseNumberedLine(line)
+			prefix := strings.Repeat(" ", indent) + marker
+			continuationPrefix := strings.Repeat(" ", indent+ansi.StringWidth(marker))
+			rendered = appendPrefixedWrapped(rendered, lipgloss.NewStyle(), prefix, continuationPrefix, content, width)
 		case isRuleLine(trimmed):
 			rendered = append(rendered, previewMutedStyle.Render(strings.Repeat("─", width)))
 		default:
@@ -381,11 +388,13 @@ func headingLevel(line string) int {
 }
 
 func isBulletLine(line string) bool {
-	return strings.HasPrefix(line, "- ") || strings.HasPrefix(line, "* ") || strings.HasPrefix(line, "+ ")
+	trimmed := strings.TrimLeftFunc(line, unicode.IsSpace)
+	return strings.HasPrefix(trimmed, "- ") || strings.HasPrefix(trimmed, "* ") || strings.HasPrefix(trimmed, "+ ")
 }
 
 func isNumberedLine(line string) bool {
-	parts := strings.SplitN(line, ". ", 2)
+	trimmed := strings.TrimLeftFunc(line, unicode.IsSpace)
+	parts := strings.SplitN(trimmed, ". ", 2)
 	if len(parts) != 2 || parts[0] == "" {
 		return false
 	}
@@ -400,4 +409,44 @@ func isRuleLine(line string) bool {
 	}
 
 	return line == strings.Repeat("-", len(line)) || line == strings.Repeat("*", len(line))
+}
+
+func parseBulletLine(line string) (indent int, markerWidth int, content string) {
+	indent = leadingVisualIndent(line)
+	trimmed := strings.TrimLeftFunc(line, unicode.IsSpace)
+	if trimmed == "" {
+		return indent, 2, ""
+	}
+
+	_, size := utf8.DecodeRuneInString(trimmed)
+	content = strings.TrimSpace(trimmed[size:])
+	return indent, 2, content
+}
+
+func parseNumberedLine(line string) (indent int, marker string, content string) {
+	indent = leadingVisualIndent(line)
+	trimmed := strings.TrimLeftFunc(line, unicode.IsSpace)
+	parts := strings.SplitN(trimmed, ". ", 2)
+	if len(parts) != 2 {
+		return indent, "", trimmed
+	}
+
+	marker = parts[0] + ". "
+	content = strings.TrimSpace(parts[1])
+	return indent, marker, content
+}
+
+func leadingVisualIndent(line string) int {
+	width := 0
+	for _, r := range line {
+		if !unicode.IsSpace(r) {
+			break
+		}
+		if r == '\t' {
+			width += 4
+			continue
+		}
+		width++
+	}
+	return width
 }
