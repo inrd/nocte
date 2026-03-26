@@ -2,7 +2,7 @@
 
 ## Project
 
-`not` is a small Go TUI note app for fast local note-taking.
+`nocte` is a small Go TUI note app for fast local note-taking.
 
 The project should evolve in small, reversible steps. Favor simple implementations that leave room for iteration over premature architecture or polished abstractions.
 Keep this file up to date on each iteration of the codebase so it remains a reliable snapshot of current behavior and expectations.
@@ -20,7 +20,7 @@ Keep `README.md` updated on each iteration as user-facing behavior, setup, and w
 
 - Language: Go
 - TUI: Bubble Tea, Bubbles, Lip Gloss
-- Entry point: `cmd/not`
+- Entry point: `cmd/nocte`
 - App state/UI: `internal/app`
 - Config: `internal/config`
 
@@ -41,8 +41,8 @@ Keep `README.md` updated on each iteration as user-facing behavior, setup, and w
 - Whitespace-only note names are invalid.
 - Note creation must never overwrite an existing file.
 - Command dialogs should clear the input and refocus it when closed.
-- The config file lives at `~/.config/not/config.json`.
-- The default notes directory is `~/not`.
+- The config file lives at `~/.config/nocte/config.json`.
+- The default notes directory is `~/nocte`.
 
 ## Workflow
 

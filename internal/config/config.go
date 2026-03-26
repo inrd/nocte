@@ -45,7 +45,7 @@ func path() (string, error) {
 		return "", fmt.Errorf("locate user home dir: %w", err)
 	}
 
-	return filepath.Join(home, ".config", "not", fileName), nil
+	return filepath.Join(home, ".config", "nocte", fileName), nil
 }
 
 func load(configPath string) (Config, error) {
@@ -105,7 +105,7 @@ func defaultConfig() (Config, error) {
 	}
 
 	return Config{
-		NotesPath: filepath.Join(home, "not"),
+		NotesPath: filepath.Join(home, "nocte"),
 	}, nil
 }
 

@@ -1,4 +1,4 @@
-module github.com/thomas/not
+module github.com/thomas/nocte
 
 go 1.25.0
 

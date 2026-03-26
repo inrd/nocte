@@ -1,6 +1,6 @@
-# not
+# nocte
 
-`not` is a small keyboard-first terminal note app that stores notes as plain Markdown files on disk.
+`nocte` is a small keyboard-first terminal note app that stores notes as plain Markdown files on disk.
 
 ## What It Does
 
@@ -28,14 +28,14 @@
 
 ## Paths
 
-- Config: `~/.config/not/config.json`
-- Default notes directory: `~/not`
+- Config: `~/.config/nocte/config.json`
+- Default notes directory: `~/nocte`
 
 The config file currently supports:
 
 ```json
 {
-  "notes_path": "~/not"
+  "notes_path": "~/nocte"
 }
 ```
 

@@ -1,4 +1,4 @@
-APP := not
+APP := nocte
 GO := go
 
 GOCACHE := $(CURDIR)/.gocache
@@ -8,10 +8,10 @@ GOENV := GOCACHE=$(GOCACHE) GOMODCACHE=$(GOMODCACHE)
 .PHONY: run build fmt tidy clean
 
 run:
-	$(GOENV) $(GO) run ./cmd/not
+	$(GOENV) $(GO) run ./cmd/nocte
 
 build:
-	$(GOENV) $(GO) build -o $(APP) ./cmd/not
+	$(GOENV) $(GO) build -o $(APP) ./cmd/nocte
 
 fmt:
 	$(GOENV) $(GO) fmt ./...

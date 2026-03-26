@@ -6,8 +6,8 @@ import (
 
 	"github.com/charmbracelet/bubbletea"
 
-	"github.com/thomas/not/internal/app"
-	"github.com/thomas/not/internal/config"
+	"github.com/thomas/nocte/internal/app"
+	"github.com/thomas/nocte/internal/config"
 )
 
 const version = "0.1.0"
@@ -15,14 +15,14 @@ const version = "0.1.0"
 func main() {
 	cfg, configPath, err := config.LoadOrCreate()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "not: %v\n", err)
+		fmt.Fprintf(os.Stderr, "nocte: %v\n", err)
 		os.Exit(1)
 	}
 
 	program := tea.NewProgram(app.New(cfg, configPath, version), tea.WithAltScreen())
 
 	if _, err := program.Run(); err != nil {
-		fmt.Fprintf(os.Stderr, "not: %v\n", err)
+		fmt.Fprintf(os.Stderr, "nocte: %v\n", err)
 		os.Exit(1)
 	}
 }
