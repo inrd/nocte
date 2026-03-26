@@ -23,6 +23,7 @@ Keep `README.md` focused on meaningful user-facing capabilities and workflow. Av
 - TUI: Bubble Tea, Bubbles, Lip Gloss
 - Entry point: `cmd/nocte`
 - App state/UI: `internal/app`, split into focused files by responsibility while keeping the single `Model` as the central app state
+- Tests: `internal/app` tests are split into focused `*_test.go` files by responsibility, with shared test helpers kept separately
 - Config: `internal/config`
 
 ## Important Behavior
