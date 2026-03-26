@@ -6,10 +6,8 @@
 
 - Create a new note from the main input
 - Fuzzy-search existing notes as you type
-- Open a selected note with `Enter`
 - Browse all notes with `:list`
 - Notes are automatically saved on editor exit
-- Return to the launcher with `Esc`
 
 ## How To Use It
 
@@ -17,7 +15,7 @@
 - Press `Up` or `Down` to move through matches
 - Press `Enter` on a selected match to open it
 - Press `Enter` without selecting a match to create a new note
-- Use `:list` to browse every note sorted by last update, with a green updated timestamp plus word count and file size metadata
+- Use `:list` to browse every note sorted by last update
 
 ## Commands
 
@@ -29,7 +27,6 @@
 ## Paths
 
 - Config: `~/.config/nocte/config.json`
-- Default notes directory: `~/nocte`
 
 The config file currently supports:
 
@@ -38,7 +35,3 @@ The config file currently supports:
   "notes_path": "~/nocte"
 }
 ```
-
-## Disclaimer
-
-This project is developed using iterative LLM-assisted workflows, with incremental changes and continuous testing.
