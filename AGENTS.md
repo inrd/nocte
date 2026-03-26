@@ -2,7 +2,7 @@
 
 ## Project
 
-`not` is a small Go TUI note app inspired by nvALT.
+`not` is a small Go TUI note app for fast local note-taking.
 
 The project should evolve in small, reversible steps. Favor simple implementations that leave room for iteration over premature architecture or polished abstractions.
 Keep this file up to date on each iteration of the codebase so it remains a reliable snapshot of current behavior and expectations.

@@ -1,27 +1,23 @@
 # not
 
-`not` is a small Go TUI note app inspired by nvALT.
+`not` is a small keyboard-first terminal note app that stores notes as plain Markdown files on disk.
 
-It currently focuses on a fast keyboard-first flow:
+## What It Does
 
-- Type a note name in the launcher to fuzzy-search existing notes.
-- Use `Up` and `Down` to select a matching note when you want to open one.
-- Press `Enter` with a selected note to open it.
-- Run `:list` to browse all existing notes in a dialog, including character count and file size, and open one directly.
-- Press `Enter` without selecting a note to create a new one.
-- Edit the note immediately in a simple plain-text editor.
-- Changes autosave as you type.
-- Press `Esc` to return to the launcher.
+- Create a new note from the main input
+- Fuzzy-search existing notes as you type
+- Open a selected note with `Enter`
+- Browse all notes with `:list`
+- Autosave while editing
+- Return to the launcher with `Esc`
 
-## Current Features
+## How To Use It
 
-- Lightweight local-first note creation
-- Fuzzy note search in the launcher
-- Existing-note list dialog with metadata and scrolling for direct browsing
-- Plain Markdown files on disk
-- Filename sanitization for new notes
-- Protection against overwriting existing notes
-- Minimal command palette for internal commands
+- Type a note name to search for existing notes
+- Press `Up` or `Down` to move through matches
+- Press `Enter` on a selected match to open it
+- Press `Enter` without selecting a match to create a new note
+- Use `:list` to browse every note with character count and file size metadata
 
 ## Commands
 
@@ -42,18 +38,3 @@ The config file currently supports:
   "notes_path": "~/not"
 }
 ```
-
-## Development
-
-Use the Make targets when practical:
-
-- `make run`
-- `make build`
-- `make fmt`
-- `make tidy`
-
-The `Makefile` sets workspace-local `GOCACHE` and `GOMODCACHE`.
-
-## Status
-
-The app is intentionally early and evolving in small, reversible steps. The current editor is plain text only, with room to grow into richer note browsing and command flows later.
