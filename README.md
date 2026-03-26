@@ -24,7 +24,7 @@ export PATH="$HOME/.local/bin:$PATH"
 - Create a new note from the main input
 - Fuzzy-search existing notes as you type
 - Browse all notes with `:list`
-- Edit notes in a plain text editor with an optional live Markdown preview, including terminal image rendering through `chafa` when available
+- Edit notes in a plain text editor with an optional live Markdown preview for headings, lists, task lists, links, inline code, bold, italics, and strikethrough, including terminal image rendering through `chafa` when available
 - Open note links from the editor with a keyboard shortcut
 - Delete the current note from the editor with an in-app confirmation dialog
 - Notes are saved on editor exit when content changed, and brand-new untouched empty notes are discarded
@@ -42,6 +42,7 @@ export PATH="$HOME/.local/bin:$PATH"
 - Use `:list` to browse every note sorted by last update
 
 If `chafa` is not installed or an image cannot be rendered, the preview falls back to showing the image label and path.
+
 
 ## Commands
 

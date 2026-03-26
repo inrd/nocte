@@ -108,7 +108,6 @@ func (m Model) updateEditorKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			_ = m.openSelectedDialogLink()
 			return m, nil
 		}
-
 		return m, nil
 	}
 
@@ -125,7 +124,6 @@ func (m Model) updateEditorKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.closeDialog()
 			return m, nil
 		}
-
 		return m, nil
 	}
 
@@ -151,7 +149,6 @@ func (m Model) updateEditorKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.closeDialog()
 			return m, nil
 		}
-
 		return m, nil
 	}
 

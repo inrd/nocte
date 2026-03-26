@@ -125,6 +125,11 @@ func renderMarkdownPreviewLinesForNote(content string, notePath string, width in
 		case strings.HasPrefix(trimmed, ">"):
 			text := strings.TrimSpace(strings.TrimPrefix(trimmed, ">"))
 			rendered = appendPrefixedWrapped(rendered, previewQuoteStyle, "│ ", "│ ", text, width)
+		case isTaskListLine(line):
+			indent, marker, content := parseTaskListLine(line)
+			prefix := strings.Repeat(" ", indent) + marker
+			continuationPrefix := strings.Repeat(" ", indent+ansi.StringWidth(marker))
+			rendered = appendPrefixedWrapped(rendered, lipgloss.NewStyle(), prefix, continuationPrefix, content, width)
 		case isBulletLine(line):
 			indent, markerWidth, content := parseBulletLine(line)
 			prefix := strings.Repeat(" ", indent) + "• "
@@ -215,6 +220,26 @@ func renderInlineMarkdownSegments(base lipgloss.Style, content string) []preview
 			code := content[1 : end+1]
 			appendSegment(previewInlineCodeStyle.Inherit(base), code)
 			content = content[end+2:]
+		case strings.HasPrefix(content, "~~"):
+			strikethroughStyle, inner, consumed, ok := parseInlineDelimitedStyle(content, "~~", previewStrikethroughStyle)
+			if !ok {
+				appendSegment(base, content[:1])
+				content = content[1:]
+				continue
+			}
+
+			segments = append(segments, renderInlineMarkdownSegments(strikethroughStyle.Inherit(base), inner)...)
+			content = content[consumed:]
+		case strings.HasPrefix(content, "**"), strings.HasPrefix(content, "__"), strings.HasPrefix(content, "*"), strings.HasPrefix(content, "_"):
+			emphasisStyle, inner, consumed, ok := parseInlineEmphasis(content)
+			if !ok {
+				appendSegment(base, content[:1])
+				content = content[1:]
+				continue
+			}
+
+			segments = append(segments, renderInlineMarkdownSegments(emphasisStyle.Inherit(base), inner)...)
+			content = content[consumed:]
 		case strings.HasPrefix(content, "["):
 			labelEnd := strings.Index(content, "](")
 			if labelEnd < 0 {
@@ -245,12 +270,50 @@ func renderInlineMarkdownSegments(base lipgloss.Style, content string) []preview
 
 func nextInlineSpecial(content string) int {
 	for i, r := range content {
-		if r == '`' || r == '[' {
+		if r == '`' || r == '[' || r == '*' || r == '_' || r == '~' {
 			return i
 		}
 	}
 
 	return len(content)
+}
+
+func parseInlineEmphasis(content string) (lipgloss.Style, string, int, bool) {
+	switch {
+	case strings.HasPrefix(content, "**"):
+		return parseInlineDelimitedStyle(content, "**", previewBoldStyle)
+	case strings.HasPrefix(content, "__"):
+		return parseInlineDelimitedStyle(content, "__", previewBoldStyle)
+	case strings.HasPrefix(content, "*"):
+		return parseInlineDelimitedStyle(content, "*", previewItalicStyle)
+	case strings.HasPrefix(content, "_"):
+		return parseInlineDelimitedStyle(content, "_", previewItalicStyle)
+	default:
+		return lipgloss.Style{}, "", 0, false
+	}
+}
+
+func parseInlineDelimitedStyle(content string, delimiter string, style lipgloss.Style) (lipgloss.Style, string, int, bool) {
+	if len(content) <= len(delimiter) {
+		return lipgloss.Style{}, "", 0, false
+	}
+
+	innerStart := len(delimiter)
+	if unicode.IsSpace(rune(content[innerStart])) {
+		return lipgloss.Style{}, "", 0, false
+	}
+
+	closing := strings.Index(content[innerStart:], delimiter)
+	if closing < 0 {
+		return lipgloss.Style{}, "", 0, false
+	}
+
+	inner := content[innerStart : innerStart+closing]
+	if strings.TrimSpace(inner) == "" || unicode.IsSpace(rune(inner[len(inner)-1])) {
+		return lipgloss.Style{}, "", 0, false
+	}
+
+	return style, inner, innerStart + closing + len(delimiter), true
 }
 
 func wrapPreviewSegments(segments []previewSegment, width int) []string {
@@ -398,6 +461,19 @@ func isBulletLine(line string) bool {
 	return strings.HasPrefix(trimmed, "- ") || strings.HasPrefix(trimmed, "* ") || strings.HasPrefix(trimmed, "+ ")
 }
 
+func isTaskListLine(line string) bool {
+	trimmed := strings.TrimLeftFunc(line, unicode.IsSpace)
+	return strings.HasPrefix(trimmed, "- [ ] ") ||
+		strings.HasPrefix(trimmed, "- [x] ") ||
+		strings.HasPrefix(trimmed, "- [X] ") ||
+		strings.HasPrefix(trimmed, "* [ ] ") ||
+		strings.HasPrefix(trimmed, "* [x] ") ||
+		strings.HasPrefix(trimmed, "* [X] ") ||
+		strings.HasPrefix(trimmed, "+ [ ] ") ||
+		strings.HasPrefix(trimmed, "+ [x] ") ||
+		strings.HasPrefix(trimmed, "+ [X] ")
+}
+
 func isNumberedLine(line string) bool {
 	trimmed := strings.TrimLeftFunc(line, unicode.IsSpace)
 	parts := strings.SplitN(trimmed, ". ", 2)
@@ -427,6 +503,24 @@ func parseBulletLine(line string) (indent int, markerWidth int, content string) 
 	_, size := utf8.DecodeRuneInString(trimmed)
 	content = strings.TrimSpace(trimmed[size:])
 	return indent, 2, content
+}
+
+func parseTaskListLine(line string) (indent int, marker string, content string) {
+	indent = leadingVisualIndent(line)
+	trimmed := strings.TrimLeftFunc(line, unicode.IsSpace)
+	if len(trimmed) < 6 {
+		return indent, "• ", trimmed
+	}
+
+	checked := trimmed[3] == 'x' || trimmed[3] == 'X'
+	if checked {
+		marker = "☑ "
+	} else {
+		marker = "☐ "
+	}
+
+	content = strings.TrimSpace(trimmed[6:])
+	return indent, marker, content
 }
 
 func parseNumberedLine(line string) (indent int, marker string, content string) {

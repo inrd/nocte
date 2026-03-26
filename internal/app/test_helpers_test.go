@@ -11,7 +11,6 @@ import (
 
 func updateModel(t *testing.T, model Model, msg tea.Msg) Model {
 	t.Helper()
-
 	updated, _ := model.Update(msg)
 	next, ok := updated.(Model)
 	if !ok {

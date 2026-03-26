@@ -41,7 +41,7 @@ Keep `README.md` focused on meaningful user-facing capabilities and workflow. Av
 - Pressing `Enter` without a selected note match should keep the create-new-note behavior.
 - Leaving a newly created note empty and exiting the editor should delete that note instead of saving an empty file.
 - The initial note editor is plain text only, saves on close when content changed, and otherwise closes without rewriting the file.
-- The editor can show a toggleable live Markdown preview, controlled by keyboard shortcut and documented below the editor, including nested Markdown list indentation.
+- The editor can show a toggleable live Markdown preview, controlled by keyboard shortcut and documented below the editor, including headings, links, inline code, bold, italics, strikethrough, task lists, and nested Markdown list indentation.
 - Markdown image lines like `![alt](./image.png)` should render local image previews through `chafa` when it is available, and otherwise fall back to readable image label/path text.
 - Pressing `Ctrl+L` in the editor should open a dialog listing links found in the current note, with visually distinct labels and URLs, and pressing `Enter` on a selected link should open it in the default web browser.
 - Pressing `Ctrl+D` in the editor should open a confirmation alert for deleting the current note, prevent terminal EOF handling, and on confirm delete the note and return to the launcher.

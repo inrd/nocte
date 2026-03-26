@@ -93,6 +93,15 @@ var (
 	previewInlineCodeStyle = lipgloss.NewStyle().
 				Foreground(lipgloss.Color("10"))
 
+	previewBoldStyle = lipgloss.NewStyle().
+				Bold(true)
+
+	previewItalicStyle = lipgloss.NewStyle().
+				Italic(true)
+
+	previewStrikethroughStyle = lipgloss.NewStyle().
+					Strikethrough(true)
+
 	previewLinkLabelStyle = lipgloss.NewStyle().
 				Foreground(lipgloss.Color("12")).
 				Underline(true)

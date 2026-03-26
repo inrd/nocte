@@ -376,6 +376,34 @@ func TestRenderMarkdownPreviewKeepsWrappedInlineCodeStyled(t *testing.T) {
 	}
 }
 
+func TestRenderMarkdownPreviewRendersBoldAndItalics(t *testing.T) {
+	rendered := renderMarkdownPreview("plain *italic* and _also italic_ plus **bold** and __also bold__", 80)
+
+	if !strings.Contains(rendered, "italic") || !strings.Contains(rendered, "also italic") {
+		t.Fatalf("renderMarkdownPreview() missing italic text: %q", rendered)
+	}
+	if !strings.Contains(rendered, "bold") || !strings.Contains(rendered, "also bold") {
+		t.Fatalf("renderMarkdownPreview() missing bold text: %q", rendered)
+	}
+	if strings.Contains(rendered, "*italic*") || strings.Contains(rendered, "_also italic_") {
+		t.Fatalf("renderMarkdownPreview() should hide italic markdown markers: %q", rendered)
+	}
+	if strings.Contains(rendered, "**bold**") || strings.Contains(rendered, "__also bold__") {
+		t.Fatalf("renderMarkdownPreview() should hide bold markdown markers: %q", rendered)
+	}
+}
+
+func TestRenderMarkdownPreviewRendersStrikethrough(t *testing.T) {
+	rendered := renderMarkdownPreview("keep ~~crossed out~~ text", 80)
+
+	if !strings.Contains(rendered, "crossed out") {
+		t.Fatalf("renderMarkdownPreview() missing strikethrough text: %q", rendered)
+	}
+	if strings.Contains(rendered, "~~crossed out~~") {
+		t.Fatalf("renderMarkdownPreview() should hide strikethrough markdown markers: %q", rendered)
+	}
+}
+
 func TestRenderMarkdownPreviewKeepsNestedListIndentation(t *testing.T) {
 	rendered := renderMarkdownPreview("- parent\n    - child\n        - nested\n- another root", 28)
 
@@ -401,6 +429,20 @@ func TestRenderMarkdownPreviewKeepsOrderedListIndentationAndWrap(t *testing.T) {
 	}
 	if !strings.Contains(rendered, "\n      item wraps") {
 		t.Fatalf("renderMarkdownPreview() missing ordered list continuation alignment: %q", rendered)
+	}
+}
+
+func TestRenderMarkdownPreviewRendersTaskLists(t *testing.T) {
+	rendered := renderMarkdownPreview("- [ ] open item\n  - [x] done item that wraps onto another line", 18)
+
+	if !strings.Contains(rendered, "☐ open item") {
+		t.Fatalf("renderMarkdownPreview() missing unchecked task item: %q", rendered)
+	}
+	if !strings.Contains(rendered, "  ☑ done item") {
+		t.Fatalf("renderMarkdownPreview() missing checked task item: %q", rendered)
+	}
+	if strings.Contains(rendered, "[ ]") || strings.Contains(rendered, "[x]") {
+		t.Fatalf("renderMarkdownPreview() should hide raw task list markers: %q", rendered)
 	}
 }
 
