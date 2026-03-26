@@ -60,6 +60,7 @@ Use the Make targets instead of raw Go commands when practical:
 
 - `make run`
 - `make build`
+- `make install`
 - `make test`
 - `make fmt`
 - `make tidy`

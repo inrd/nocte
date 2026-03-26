@@ -2,6 +2,18 @@
 
 `nocte` is a small keyboard-first terminal note app that stores notes as plain Markdown files on disk.
 
+## Install
+
+- Run `make install` to build and install `nocte` to `~/.local/bin/nocte`
+- Set a custom install location with `make install BINDIR=/your/bin/path`
+- Make sure your install directory is on your `PATH`
+
+For example, in `~/.zshrc`:
+
+```sh
+export PATH="$HOME/.local/bin:$PATH"
+```
+
 ## What It Does
 
 - Create a new note from the main input
@@ -32,6 +44,7 @@
 ## Paths
 
 - Config: `~/.config/nocte/config.json`
+- Default notes directory: `~/nocte`
 
 The config file currently supports:
 
