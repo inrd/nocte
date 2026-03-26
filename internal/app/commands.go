@@ -3,6 +3,7 @@ package app
 import (
 	"fmt"
 	"os"
+	"sort"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -74,13 +75,63 @@ func (m Model) filteredCommands() []command {
 		return commands
 	}
 
-	filtered := make([]command, 0, len(commands))
+	type commandMatch struct {
+		command command
+		tier    int
+		score   int
+	}
+
+	nameQuery := strings.TrimPrefix(query, ":")
+	matches := make([]commandMatch, 0, len(commands))
 	for _, command := range commands {
 		name := strings.ToLower(command.name)
 		description := strings.ToLower(command.description)
-		if strings.Contains(name, query) || strings.Contains(description, strings.TrimPrefix(query, ":")) {
-			filtered = append(filtered, command)
+
+		switch {
+		case strings.HasPrefix(name, query):
+			matches = append(matches, commandMatch{
+				command: command,
+				tier:    0,
+				score:   len(name) - len(query),
+			})
+		case nameQuery != "" && strings.Contains(name, query):
+			matches = append(matches, commandMatch{
+				command: command,
+				tier:    1,
+				score:   strings.Index(name, query),
+			})
+		case nameQuery != "":
+			if score, ok := fuzzyScore(strings.TrimPrefix(name, ":"), nameQuery); ok {
+				matches = append(matches, commandMatch{
+					command: command,
+					tier:    2,
+					score:   score,
+				})
+				continue
+			}
+			if strings.Contains(description, nameQuery) {
+				matches = append(matches, commandMatch{
+					command: command,
+					tier:    3,
+					score:   strings.Index(description, nameQuery),
+				})
+			}
 		}
+	}
+
+	sort.SliceStable(matches, func(i, j int) bool {
+		if matches[i].tier != matches[j].tier {
+			return matches[i].tier < matches[j].tier
+		}
+		if matches[i].score != matches[j].score {
+			return matches[i].score < matches[j].score
+		}
+		return matches[i].command.name < matches[j].command.name
+	})
+
+	filtered := make([]command, 0, len(matches))
+	for _, match := range matches {
+		filtered = append(filtered, match.command)
 	}
 
 	return filtered

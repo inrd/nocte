@@ -4,6 +4,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -143,4 +144,37 @@ func TestHandleCommandFilesShowsLaunchError(t *testing.T) {
 	if !strings.Contains(model.status, "Could not open notes dir") {
 		t.Fatalf("status = %q, want open-notes-dir error", model.status)
 	}
+}
+
+func TestFilteredCommandsPrefersNamePrefixMatches(t *testing.T) {
+	model := New(config.Config{}, "", "test")
+	model.input.SetValue(":l")
+
+	got := commandNames(model.filteredCommands())
+	want := []string{":list", ":help", ":files"}
+
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("filteredCommands() = %v, want %v", got, want)
+	}
+}
+
+func TestFilteredCommandsPrefersNameMatchesOverDescriptionMatches(t *testing.T) {
+	model := New(config.Config{}, "", "test")
+	model.input.SetValue(":inf")
+
+	got := commandNames(model.filteredCommands())
+	want := []string{":info"}
+
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("filteredCommands() = %v, want %v", got, want)
+	}
+}
+
+func commandNames(commands []command) []string {
+	names := make([]string, 0, len(commands))
+	for _, command := range commands {
+		names = append(names, command.name)
+	}
+
+	return names
 }
