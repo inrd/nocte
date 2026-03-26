@@ -23,6 +23,15 @@ import (
 
 const largeNoteWarningThreshold int64 = 10 * 1024 * 1024
 
+const (
+	defaultDialogWidth     = 64
+	defaultListDialogWidth = 84
+	maxListDialogWidth     = 100
+	listUpdatedAtWidth     = 17
+	listMetaWidth          = 20
+	listColumnGap          = 2
+)
+
 var (
 	docStyle = lipgloss.NewStyle().
 			Padding(1, 2)
@@ -48,7 +57,7 @@ var (
 			Border(lipgloss.RoundedBorder()).
 			BorderForeground(lipgloss.Color("12")).
 			Padding(1, 2).
-			Width(64)
+			Width(defaultDialogWidth)
 
 	dialogTitleStyle = lipgloss.NewStyle().
 				Bold(true)
@@ -63,12 +72,9 @@ var (
 				Foreground(lipgloss.Color("0")).
 				Background(lipgloss.Color("12"))
 
-	listNameStyle = lipgloss.NewStyle().
-			Width(24)
+	listNameStyle = lipgloss.NewStyle()
 
-	listUpdatedStyle = lipgloss.NewStyle().
-				Width(15).
-				MarginRight(3)
+	listUpdatedStyle = lipgloss.NewStyle()
 )
 
 type Model struct {
@@ -526,6 +532,7 @@ func infoDialog(version string, configPath string, notesPath string) string {
 }
 
 func (m Model) listDialog() string {
+	dialogStyle := m.listDialogStyle()
 	lines := []string{
 		dialogTitleStyle.Render("Notes"),
 		"",
@@ -545,12 +552,7 @@ func (m Model) listDialog() string {
 
 	for i := start; i < end; i++ {
 		note := m.dialogNotes[i]
-		line := lipgloss.JoinHorizontal(
-			lipgloss.Left,
-			listNameStyle.Render(truncateText(note.name, 24)),
-			listUpdatedStyle.Render(successStyle.Render(formatNoteUpdatedAt(note.modTime))),
-			metaStyle.Render(noteMeta(note)),
-		)
+		line := m.listDialogLine(note)
 		if i == m.dialogIndex {
 			lines = append(lines, commandSelectedStyle.Render(line))
 			continue
@@ -940,6 +942,43 @@ func (m Model) dialogVisibleCount() int {
 	}
 
 	return max(3, m.height-10)
+}
+
+func (m Model) listDialogStyle() lipgloss.Style {
+	width := defaultListDialogWidth
+	if m.width > 0 {
+		width = min(maxListDialogWidth, max(defaultDialogWidth, m.width-8))
+	}
+
+	return dialogStyle.Copy().Width(width)
+}
+
+func (m Model) listDialogLine(note noteMatch) string {
+	dialogStyle := m.listDialogStyle()
+	contentWidth := dialogStyle.GetWidth() - dialogStyle.GetHorizontalFrameSize()
+	metaWidth := listMetaWidth
+	updatedWidth := listUpdatedAtWidth
+	nameWidth := max(12, contentWidth-metaWidth-updatedWidth-(listColumnGap*2))
+
+	name := listNameStyle.Copy().
+		Width(nameWidth).
+		Render(truncateText(note.name, nameWidth))
+	updated := listUpdatedStyle.Copy().
+		Width(updatedWidth).
+		Render(successStyle.Render(formatNoteUpdatedAt(note.modTime)))
+	meta := lipgloss.NewStyle().
+		Width(metaWidth).
+		Align(lipgloss.Right).
+		Render(metaStyle.Render(noteMeta(note)))
+
+	return lipgloss.JoinHorizontal(
+		lipgloss.Left,
+		name,
+		strings.Repeat(" ", listColumnGap),
+		updated,
+		strings.Repeat(" ", listColumnGap),
+		meta,
+	)
 }
 
 func openPath(path string) error {

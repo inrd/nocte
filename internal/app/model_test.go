@@ -305,6 +305,29 @@ func TestDialogRangeHonorsOffsetAndHeight(t *testing.T) {
 	}
 }
 
+func TestListDialogKeepsTimestampOnOneLineWhenWideEnough(t *testing.T) {
+	model := New(config.Config{}, "", "test")
+	model.width = 120
+	model.dialogNotes = []noteMatch{
+		{
+			name:      "windows audio dev.md",
+			wordCount: 51,
+			sizeBytes: 410,
+			modTime:   time.Date(2024, time.April, 29, 16, 35, 0, 0, time.Local),
+		},
+	}
+	model.dialogIndex = 0
+
+	rendered := model.listDialog()
+
+	if strings.Contains(rendered, "Apr 29 2024\n16:35") {
+		t.Fatalf("listDialog() wrapped the timestamp:\n%s", rendered)
+	}
+	if !strings.Contains(rendered, "Apr 29 2024 16:35") {
+		t.Fatalf("listDialog() = %q, want single-line timestamp", rendered)
+	}
+}
+
 func TestUpdateEnterCreatesNewNoteAndOpensEditor(t *testing.T) {
 	tmpDir := t.TempDir()
 	model := New(config.Config{NotesPath: tmpDir}, "", "test")
