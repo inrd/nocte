@@ -19,6 +19,8 @@ import (
 	"github.com/thomas/nocte/internal/config"
 )
 
+const largeNoteWarningThreshold int64 = 10 * 1024 * 1024
+
 var (
 	docStyle = lipgloss.NewStyle().
 			Padding(1, 2)
@@ -347,17 +349,18 @@ func (m Model) editorView() string {
 	pathLine := helpStyle.Render(m.editorPath)
 	editorBox := inputStyle.Render(m.editor.View())
 	help := helpStyle.Render("Plain text editor. Esc saves and returns. Ctrl+C saves and quits.")
+	statusLine := m.editorStatusLine()
+	warningLine := m.editorWarningLine()
 
-	status := ""
-	switch {
-	case m.status == "":
-	case m.isError:
-		status = errorStyle.Render(m.status)
-	default:
-		status = successStyle.Render(m.status)
+	lines := []string{header, pathLine, "", editorBox, help}
+	if statusLine != "" {
+		lines = append(lines, statusLine)
+	}
+	if warningLine != "" {
+		lines = append(lines, warningLine)
 	}
 
-	content := lipgloss.JoinVertical(lipgloss.Left, header, pathLine, "", editorBox, help, status)
+	content := lipgloss.JoinVertical(lipgloss.Left, lines...)
 
 	if m.activeDialog == "save-error" {
 		if m.width == 0 || m.height == 0 {
@@ -374,6 +377,31 @@ func (m Model) editorView() string {
 	horizontal := lipgloss.PlaceHorizontal(m.width, lipgloss.Center, content)
 	vertical := lipgloss.PlaceVertical(m.height, lipgloss.Center, horizontal)
 	return docStyle.Render(strings.TrimRight(vertical, "\n"))
+}
+
+func (m Model) editorStatusLine() string {
+	sizeInfo := metaStyle.Render(editorSizeStatus(m.editor.Value()))
+	if m.status == "" {
+		return sizeInfo
+	}
+
+	var statusText string
+	if m.isError {
+		statusText = errorStyle.Render(m.status)
+	} else {
+		statusText = successStyle.Render(m.status)
+	}
+
+	return lipgloss.JoinHorizontal(lipgloss.Left, statusText, helpStyle.Render(" | "), sizeInfo)
+}
+
+func (m Model) editorWarningLine() string {
+	warning := largeNoteWarning(int64(len([]byte(m.editor.Value()))))
+	if warning == "" {
+		return ""
+	}
+
+	return errorStyle.Render(warning)
 }
 
 func (m Model) handleCommand() (tea.Model, tea.Cmd) {
@@ -972,6 +1000,21 @@ func (m Model) listNotes() []noteMatch {
 
 func noteMeta(note noteMatch) string {
 	return fmt.Sprintf("%d words | %s", note.wordCount, humanSize(note.sizeBytes))
+}
+
+func editorSizeStatus(content string) string {
+	return fmt.Sprintf("Size %s", humanSize(int64(len([]byte(content)))))
+}
+
+func largeNoteWarning(sizeBytes int64) string {
+	if sizeBytes <= largeNoteWarningThreshold {
+		return ""
+	}
+
+	return fmt.Sprintf(
+		"Large note warning: %s may slow editing and saving.",
+		humanSize(sizeBytes),
+	)
 }
 
 func formatNoteUpdatedAt(modTime time.Time) string {

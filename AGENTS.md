@@ -37,6 +37,7 @@ Keep `README.md` focused on meaningful user-facing capabilities and workflow. Av
 - Pressing `Enter` without a selected note match should keep the create-new-note behavior.
 - The initial note editor is plain text only and saves when the editor closes.
 - The editor must support long notes without truncating content.
+- The editor footer should show the current note size and warn when a very large note may slow editing or saving.
 - If saving on editor exit fails, the app should warn before discarding unsaved changes.
 - Pressing `Esc` in the editor should return to the main launcher input.
 - Filenames are sanitized before writing.

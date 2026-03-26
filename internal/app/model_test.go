@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -201,6 +202,28 @@ func TestHumanSize(t *testing.T) {
 	}
 }
 
+func TestEditorSizeStatus(t *testing.T) {
+	content := "hello"
+	if got := editorSizeStatus(content); got != "Size 5 B" {
+		t.Fatalf("editorSizeStatus(%q) = %q, want %q", content, got, "Size 5 B")
+	}
+}
+
+func TestLargeNoteWarning(t *testing.T) {
+	below := largeNoteWarning(largeNoteWarningThreshold)
+	if below != "" {
+		t.Fatalf("largeNoteWarning(%d) = %q, want empty string", largeNoteWarningThreshold, below)
+	}
+
+	above := largeNoteWarning(largeNoteWarningThreshold + 1)
+	if above == "" {
+		t.Fatalf("largeNoteWarning(%d) = empty string, want warning", largeNoteWarningThreshold+1)
+	}
+	if !strings.Contains(above, "may slow editing and saving") {
+		t.Fatalf("largeNoteWarning(%d) = %q, want slowdown warning", largeNoteWarningThreshold+1, above)
+	}
+}
+
 func TestMoveNoteSelectionStartsUnselected(t *testing.T) {
 	model := New(config.Config{}, "", "test")
 	model.noteMatches = []noteMatch{{name: "one.md"}, {name: "two.md"}}
@@ -303,6 +326,9 @@ func TestOpenEditorDoesNotTruncateLongNotes(t *testing.T) {
 	}
 	if got := model.editor.Value(); got != content {
 		t.Fatalf("editor content length = %d, want %d", len(got), len(content))
+	}
+	if got := model.editorStatusLine(); !strings.Contains(got, "Size") {
+		t.Fatalf("editorStatusLine() = %q, want size information", got)
 	}
 }
 
