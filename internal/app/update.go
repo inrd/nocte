@@ -103,6 +103,9 @@ func (m Model) updateEditorKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	}
 
 	switch msg.String() {
+	case "ctrl+p":
+		m.togglePreview()
+		return m, nil
 	case "ctrl+c":
 		if shouldQuit := m.finishEditing("quit"); shouldQuit {
 			return m, tea.Quit

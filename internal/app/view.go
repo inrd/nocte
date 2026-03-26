@@ -54,8 +54,39 @@ func (m Model) View() string {
 func (m Model) editorView() string {
 	header := dialogTitleStyle.Render(m.editorName)
 	pathLine := helpStyle.Render(m.editorPath)
-	editorBox := inputStyle.Render(m.editor.View())
-	help := helpStyle.Render("Plain text editor. Esc saves and returns. Ctrl+C saves and quits.")
+	editorContent := m.editor.View()
+	if m.previewVisible() {
+		editorContent = lipgloss.JoinVertical(lipgloss.Left, helpStyle.Render("Editor"), editorContent)
+	}
+	editorBox := inputStyle.Render(editorContent)
+	if m.previewVisible() {
+		previewContent := lipgloss.JoinVertical(lipgloss.Left, helpStyle.Render("Preview (read-only)"), m.previewContent())
+		previewBox := inputStyle.Render(previewContent)
+		editorBox = lipgloss.JoinHorizontal(lipgloss.Top, editorBox, strings.Repeat(" ", editorPaneGap), previewBox)
+	}
+
+	helpText := lipgloss.JoinHorizontal(
+		lipgloss.Left,
+		keyHintStyle.Render("Ctrl+P"),
+		helpStyle.Render(" preview  "),
+		keyHintStyle.Render("Esc"),
+		helpStyle.Render(" save & close  "),
+		keyHintStyle.Render("Ctrl+C"),
+		helpStyle.Render(" save & quit"),
+	)
+	if !m.previewVisible() && m.previewEnabled {
+		helpText = lipgloss.JoinHorizontal(
+			lipgloss.Left,
+			keyHintStyle.Render("Ctrl+P"),
+			helpStyle.Render(" preview  "),
+			keyHintStyle.Render("Esc"),
+			helpStyle.Render(" save & close  "),
+			keyHintStyle.Render("Ctrl+C"),
+			helpStyle.Render(" save & quit  "),
+			helpStyle.Render("(preview hidden on narrow terminals)"),
+		)
+	}
+	help := helpText
 	statusLine := m.editorStatusLine()
 	warningLine := m.editorWarningLine()
 

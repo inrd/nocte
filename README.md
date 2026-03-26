@@ -7,6 +7,7 @@
 - Create a new note from the main input
 - Fuzzy-search existing notes as you type
 - Browse all notes with `:list`
+- Edit notes in a plain text editor with an optional live Markdown preview
 - Notes are automatically saved on editor exit
 
 ## How To Use It
@@ -15,6 +16,7 @@
 - Press `Up` or `Down` to move through matches
 - Press `Enter` on a selected match to open it
 - Press `Enter` without selecting a match to create a new note
+- Press `Ctrl+P` in the editor to toggle the live Markdown preview
 - Use `:list` to browse every note sorted by last update
 
 ## Commands

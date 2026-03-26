@@ -21,6 +21,9 @@ const (
 	listUpdatedAtWidth     = 17
 	listMetaWidth          = 20
 	listColumnGap          = 2
+	editorPaneGap          = 2
+	minEditorPaneWidth     = 24
+	minPreviewPaneWidth    = 24
 )
 
 var (
@@ -67,6 +70,33 @@ var (
 
 	listUpdatedStyle = lipgloss.NewStyle()
 
+	previewHeadingStyle = lipgloss.NewStyle().
+				Bold(true).
+				Foreground(lipgloss.Color("12"))
+
+	previewQuoteStyle = lipgloss.NewStyle().
+				Foreground(lipgloss.Color("11"))
+
+	previewCodeStyle = lipgloss.NewStyle().
+				Foreground(lipgloss.Color("10"))
+
+	previewMutedStyle = lipgloss.NewStyle().
+				Foreground(lipgloss.Color("8"))
+
+	previewInlineCodeStyle = lipgloss.NewStyle().
+				Foreground(lipgloss.Color("10"))
+
+	previewLinkLabelStyle = lipgloss.NewStyle().
+				Foreground(lipgloss.Color("12")).
+				Underline(true)
+
+	previewLinkURLStyle = lipgloss.NewStyle().
+				Foreground(lipgloss.Color("8"))
+
+	keyHintStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("12")).
+			Bold(true)
+
 	invalidFileChars      = regexp.MustCompile(`[^a-z0-9._-]+`)
 	openPathWithSystemApp = openPath
 	commands              = []command{
@@ -79,26 +109,27 @@ var (
 )
 
 type Model struct {
-	input        textinput.Model
-	editor       textarea.Model
-	width        int
-	height       int
-	status       string
-	isError      bool
-	config       config.Config
-	configPath   string
-	version      string
-	activeDialog string
-	commandIndex int
-	noteIndex    int
-	noteMatches  []noteMatch
-	dialogNotes  []noteMatch
-	dialogIndex  int
-	dialogOffset int
-	editorPath   string
-	editorName   string
-	lastSaved    string
-	editorAction string
+	input          textinput.Model
+	editor         textarea.Model
+	width          int
+	height         int
+	status         string
+	isError        bool
+	config         config.Config
+	configPath     string
+	version        string
+	activeDialog   string
+	commandIndex   int
+	noteIndex      int
+	noteMatches    []noteMatch
+	dialogNotes    []noteMatch
+	dialogIndex    int
+	dialogOffset   int
+	editorPath     string
+	editorName     string
+	lastSaved      string
+	editorAction   string
+	previewEnabled bool
 }
 
 type command struct {
@@ -131,14 +162,15 @@ func New(cfg config.Config, configPath string, version string) Model {
 	editor.SetWidth(64)
 
 	return Model{
-		input:        input,
-		editor:       editor,
-		noteIndex:    -1,
-		dialogIndex:  -1,
-		dialogOffset: 0,
-		config:       cfg,
-		configPath:   configPath,
-		version:      version,
+		input:          input,
+		editor:         editor,
+		noteIndex:      -1,
+		dialogIndex:    -1,
+		dialogOffset:   0,
+		config:         cfg,
+		configPath:     configPath,
+		version:        version,
+		previewEnabled: true,
 	}
 }
 

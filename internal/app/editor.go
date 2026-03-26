@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"os"
+
+	tea "github.com/charmbracelet/bubbletea"
 )
 
 func (m Model) isEditing() bool {
@@ -24,6 +26,7 @@ func (m *Model) openEditor(path string, name string) {
 	m.editor.SetValue(m.lastSaved)
 	m.editor.Focus()
 	m.resizeEditor()
+	m.editor, _ = m.editor.Update(tea.KeyMsg{Type: tea.KeyCtrlHome})
 	m.input.SetValue("")
 	m.input.Blur()
 	m.activeDialog = ""
@@ -75,12 +78,8 @@ func (m *Model) discardEditor() {
 }
 
 func (m *Model) resizeEditor() {
-	width := 64
+	width := m.editorPaneWidth()
 	height := 12
-
-	if m.width > 0 {
-		width = max(24, m.width-12)
-	}
 
 	if m.height > 0 {
 		height = max(8, m.height-10)
