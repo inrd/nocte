@@ -59,7 +59,7 @@ func (m Model) previewContent() string {
 		return ""
 	}
 
-	rendered, offsets := renderMarkdownPreviewLines(m.editor.Value(), m.previewPaneWidth())
+	rendered, offsets := renderMarkdownPreviewLinesForNote(m.editor.Value(), m.editorPath, m.previewPaneWidth())
 	if len(rendered) == 0 {
 		return ""
 	}
@@ -84,6 +84,10 @@ func renderMarkdownPreview(content string, width int) string {
 }
 
 func renderMarkdownPreviewLines(content string, width int) ([]string, []int) {
+	return renderMarkdownPreviewLinesForNote(content, "", width)
+}
+
+func renderMarkdownPreviewLinesForNote(content string, notePath string, width int) ([]string, []int) {
 	if width <= 0 {
 		return nil, nil
 	}
@@ -107,6 +111,8 @@ func renderMarkdownPreviewLines(content string, width int) ([]string, []int) {
 			rendered = appendWrapped(rendered, previewMutedStyle, trimmed, width)
 		case inCodeBlock:
 			rendered = appendWrapped(rendered, previewCodeStyle, line, width)
+		case isMarkdownImageLine(trimmed):
+			rendered = append(rendered, renderMarkdownImagePreview(notePath, trimmed, width)...)
 		case trimmed == "":
 			rendered = append(rendered, "")
 		case headingLevel(trimmed) > 0:

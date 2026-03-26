@@ -403,3 +403,127 @@ func TestRenderMarkdownPreviewKeepsOrderedListIndentationAndWrap(t *testing.T) {
 		t.Fatalf("renderMarkdownPreview() missing ordered list continuation alignment: %q", rendered)
 	}
 }
+
+func TestPreviewContentRendersMarkdownImagesWithChafa(t *testing.T) {
+	tmpDir := t.TempDir()
+	notePath := writeTestNote(t, tmpDir, "draft.md", "![diagram](./diagram.png)")
+	imagePath := filepath.Join(tmpDir, "diagram.png")
+	if err := os.WriteFile(imagePath, []byte("png"), 0o644); err != nil {
+		t.Fatalf("WriteFile(%q) error = %v", imagePath, err)
+	}
+
+	originalLookPath := lookPath
+	originalRunCommandOutput := runCommandOutput
+	t.Cleanup(func() {
+		lookPath = originalLookPath
+		runCommandOutput = originalRunCommandOutput
+		clearPreviewImageCache()
+	})
+
+	lookPath = func(file string) (string, error) {
+		if file != "chafa" {
+			t.Fatalf("LookPath file = %q, want chafa", file)
+		}
+		return "/opt/homebrew/bin/chafa", nil
+	}
+
+	var calls int
+	runCommandOutput = func(name string, args ...string) ([]byte, error) {
+		calls++
+		if name != "/opt/homebrew/bin/chafa" {
+			t.Fatalf("command name = %q, want chafa path", name)
+		}
+		if got := args[len(args)-1]; got != imagePath {
+			t.Fatalf("image path arg = %q, want %q", got, imagePath)
+		}
+		return []byte("img-line-1\nimg-line-2\n"), nil
+	}
+
+	model := New(config.Config{NotesPath: tmpDir}, "", "test")
+	model.width = 96
+	model.openEditor(notePath, "draft.md")
+
+	first := model.previewContent()
+	second := model.previewContent()
+
+	if !strings.Contains(first, "img-line-1") || !strings.Contains(first, "img-line-2") {
+		t.Fatalf("previewContent() = %q, want chafa image output", first)
+	}
+	if second != first {
+		t.Fatalf("previewContent() second render = %q, want %q", second, first)
+	}
+	if calls != 1 {
+		t.Fatalf("runCommandOutput calls = %d, want 1 due to cache", calls)
+	}
+}
+
+func TestRenderMarkdownPreviewFallsBackWhenImageCannotBeRendered(t *testing.T) {
+	tmpDir := t.TempDir()
+	notePath := filepath.Join(tmpDir, "draft.md")
+
+	rendered := strings.Join(renderMarkdownImagePreview(notePath, "![diagram](./missing.png)", 24), "\n")
+
+	if !strings.Contains(rendered, "Image: diagram") {
+		t.Fatalf("fallback preview = %q, want image label", rendered)
+	}
+	if !strings.Contains(rendered, "./missing.png") {
+		t.Fatalf("fallback preview = %q, want image path", rendered)
+	}
+}
+
+func TestRenderMarkdownPreviewFallsBackWhenChafaIsMissing(t *testing.T) {
+	tmpDir := t.TempDir()
+	imagePath := filepath.Join(tmpDir, "diagram.png")
+	if err := os.WriteFile(imagePath, []byte("png"), 0o644); err != nil {
+		t.Fatalf("WriteFile(%q) error = %v", imagePath, err)
+	}
+
+	originalLookPath := lookPath
+	t.Cleanup(func() {
+		lookPath = originalLookPath
+		clearPreviewImageCache()
+	})
+
+	lookPath = func(string) (string, error) {
+		return "", os.ErrNotExist
+	}
+
+	rendered := strings.Join(renderMarkdownImagePreview(filepath.Join(tmpDir, "draft.md"), "![diagram](./diagram.png)", 24), "\n")
+
+	if !strings.Contains(rendered, "Image: diagram") {
+		t.Fatalf("fallback preview = %q, want image label", rendered)
+	}
+	if !strings.Contains(rendered, "install chafa to preview") {
+		t.Fatalf("fallback preview = %q, want chafa hint", rendered)
+	}
+}
+
+func TestResolveMarkdownImagePathExpandsHomePrefix(t *testing.T) {
+	tmpHome := t.TempDir()
+	t.Setenv("HOME", tmpHome)
+
+	got, err := resolveMarkdownImagePath(filepath.Join(tmpHome, "note.md"), "~/images/diagram.png")
+	if err != nil {
+		t.Fatalf("resolveMarkdownImagePath() error = %v", err)
+	}
+
+	want := filepath.Join(tmpHome, "images", "diagram.png")
+	if got != want {
+		t.Fatalf("resolveMarkdownImagePath() = %q, want %q", got, want)
+	}
+}
+
+func TestResolveMarkdownImagePathExpandsEnvironmentVariables(t *testing.T) {
+	tmpHome := t.TempDir()
+	t.Setenv("HOME", tmpHome)
+
+	got, err := resolveMarkdownImagePath(filepath.Join(tmpHome, "note.md"), "$HOME/images/diagram.png")
+	if err != nil {
+		t.Fatalf("resolveMarkdownImagePath() error = %v", err)
+	}
+
+	want := filepath.Join(tmpHome, "images", "diagram.png")
+	if got != want {
+		t.Fatalf("resolveMarkdownImagePath() = %q, want %q", got, want)
+	}
+}
