@@ -34,7 +34,8 @@ Keep `README.md` updated on each iteration as user-facing behavior, setup, and w
 - In the `:list` dialog, `Up` and `Down` should move through the full note list, scrolling when needed, and `Enter` should open the selected note in the editor.
 - Pressing Enter on a new note name should create the file and immediately open an editor view for that note.
 - Pressing `Enter` without a selected note match should keep the create-new-note behavior.
-- The initial note editor is plain text only and autosaves as content changes.
+- The initial note editor is plain text only and saves when the editor closes.
+- If saving on editor exit fails, the app should warn before discarding unsaved changes.
 - Pressing `Esc` in the editor should return to the main launcher input.
 - Filenames are sanitized before writing.
 - Whitespace-only note names are invalid.

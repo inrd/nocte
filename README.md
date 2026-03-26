@@ -8,7 +8,7 @@
 - Fuzzy-search existing notes as you type
 - Open a selected note with `Enter`
 - Browse all notes with `:list`
-- Autosave while editing
+- Notes are automatically saved on editor exit
 - Return to the launcher with `Esc`
 
 ## How To Use It

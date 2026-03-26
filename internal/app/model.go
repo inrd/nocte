@@ -77,6 +77,7 @@ type Model struct {
 	editorPath   string
 	editorName   string
 	lastSaved    string
+	editorAction string
 }
 
 type command struct {
@@ -142,20 +143,36 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case tea.KeyMsg:
 		if m.isEditing() {
-			switch msg.String() {
-			case "ctrl+c":
-				return m, tea.Quit
-			case "esc":
-				m.closeEditor()
+			if m.activeDialog == "save-error" {
+				switch msg.String() {
+				case "ctrl+c", "enter":
+					action := m.editorAction
+					m.discardEditor()
+					if action == "quit" {
+						return m, tea.Quit
+					}
+					return m, nil
+				case "esc":
+					m.closeDialog()
+					return m, nil
+				}
+
 				return m, nil
 			}
 
-			before := m.editor.Value()
+			switch msg.String() {
+			case "ctrl+c":
+				if shouldQuit := m.finishEditing("quit"); shouldQuit {
+					return m, tea.Quit
+				}
+				return m, nil
+			case "esc":
+				m.finishEditing("close")
+				return m, nil
+			}
+
 			var cmd tea.Cmd
 			m.editor, cmd = m.editor.Update(msg)
-			if m.editor.Value() != before {
-				m.saveEditor()
-			}
 			return m, cmd
 		}
 
@@ -317,7 +334,7 @@ func (m Model) editorView() string {
 	header := dialogTitleStyle.Render(m.editorName)
 	pathLine := helpStyle.Render(m.editorPath)
 	editorBox := inputStyle.Render(m.editor.View())
-	help := helpStyle.Render("Plain text editor. Autosaves as you type. Press Esc to return, Ctrl+C to quit.")
+	help := helpStyle.Render("Plain text editor. Esc saves and returns. Ctrl+C saves and quits.")
 
 	status := ""
 	switch {
@@ -329,6 +346,14 @@ func (m Model) editorView() string {
 	}
 
 	content := lipgloss.JoinVertical(lipgloss.Left, header, pathLine, "", editorBox, help, status)
+
+	if m.activeDialog == "save-error" {
+		if m.width == 0 || m.height == 0 {
+			return docStyle.Render(lipgloss.JoinVertical(lipgloss.Center, content, m.dialogView()))
+		}
+
+		return docStyle.Render(strings.TrimRight(lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, m.dialogView()), "\n"))
+	}
 
 	if m.width == 0 || m.height == 0 {
 		return docStyle.Render(content)
@@ -400,6 +425,8 @@ func (m Model) dialogView() string {
 		return infoDialog(m.version, m.configPath, m.config.NotesPath)
 	case "list":
 		return m.listDialog()
+	case "save-error":
+		return m.saveErrorDialog()
 	default:
 		return ""
 	}
@@ -604,6 +631,7 @@ func (m *Model) openEditor(path string, name string) {
 	m.dialogNotes = nil
 	m.dialogIndex = -1
 	m.dialogOffset = 0
+	m.editorAction = ""
 	m.status = fmt.Sprintf("Editing %s", name)
 	m.isError = false
 }
@@ -613,12 +641,34 @@ func (m *Model) closeEditor() {
 	m.editorPath = ""
 	m.editorName = ""
 	m.lastSaved = ""
+	m.editorAction = ""
 	m.editor.SetValue("")
 	m.editor.Blur()
 	m.input.SetValue("")
 	m.input.Focus()
 	m.syncLauncherState()
-	m.status = fmt.Sprintf("Closed %s", name)
+	m.status = fmt.Sprintf("Saved and closed %s", name)
+	m.isError = false
+}
+
+func (m *Model) discardEditor() {
+	name := m.editorName
+	action := m.editorAction
+	m.editorPath = ""
+	m.editorName = ""
+	m.lastSaved = ""
+	m.editorAction = ""
+	m.editor.SetValue("")
+	m.editor.Blur()
+	m.activeDialog = ""
+	m.input.SetValue("")
+	m.input.Focus()
+	m.syncLauncherState()
+	if action == "quit" {
+		m.status = fmt.Sprintf("Discarded changes in %s and quit", name)
+	} else {
+		m.status = fmt.Sprintf("Discarded changes in %s", name)
+	}
 	m.isError = false
 }
 
@@ -638,21 +688,38 @@ func (m *Model) resizeEditor() {
 	m.editor.SetHeight(height)
 }
 
-func (m *Model) saveEditor() {
+func (m *Model) saveEditor() error {
 	content := m.editor.Value()
 	if content == m.lastSaved {
-		return
+		return nil
 	}
 
 	if err := os.WriteFile(m.editorPath, []byte(content), 0o644); err != nil {
-		m.status = fmt.Sprintf("Could not save %s: %v", m.editorName, err)
-		m.isError = true
-		return
+		return fmt.Errorf("could not save %s: %w", m.editorName, err)
 	}
 
 	m.lastSaved = content
-	m.status = fmt.Sprintf("Autosaved %s", m.editorName)
+	m.status = fmt.Sprintf("Saved %s", m.editorName)
 	m.isError = false
+	return nil
+}
+
+func (m *Model) finishEditing(action string) bool {
+	if err := m.saveEditor(); err != nil {
+		m.activeDialog = "save-error"
+		m.editorAction = action
+		m.status = err.Error()
+		m.isError = true
+		return false
+	}
+
+	if action == "quit" {
+		m.editorAction = ""
+		return true
+	}
+
+	m.closeEditor()
+	return false
 }
 
 func (m *Model) syncLauncherState() {
@@ -669,12 +736,37 @@ func (m *Model) syncLauncherState() {
 }
 
 func (m *Model) closeDialog() {
+	if m.activeDialog == "save-error" {
+		m.activeDialog = ""
+		m.editorAction = ""
+		m.status = fmt.Sprintf("Still editing %s", m.editorName)
+		m.isError = false
+		return
+	}
+
 	m.activeDialog = ""
 	m.dialogNotes = nil
 	m.dialogIndex = -1
 	m.dialogOffset = 0
 	m.input.SetValue("")
 	m.input.Focus()
+}
+
+func (m Model) saveErrorDialog() string {
+	lines := []string{
+		dialogTitleStyle.Render("Save Failed"),
+		"",
+		errorStyle.Render(m.status),
+		"",
+		"Press Enter to discard your unsaved changes.",
+		"Press Esc to return to the editor.",
+	}
+
+	if m.editorAction == "quit" {
+		lines[4] = "Press Enter to discard your unsaved changes and quit."
+	}
+
+	return dialogStyle.Render(lipgloss.JoinVertical(lipgloss.Left, lines...))
 }
 
 func (m *Model) moveNoteSelection(delta int) {
