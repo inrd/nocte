@@ -72,8 +72,8 @@ func TestFuzzyScore(t *testing.T) {
 
 func TestFindNoteMatchesFiltersSortsAndAddsMetadata(t *testing.T) {
 	tmpDir := t.TempDir()
-	writeTestNote(t, tmpDir, "meeting-notes.md", "hello")
-	writeTestNote(t, tmpDir, "math-notes.md", "123456789")
+	writeTestNote(t, tmpDir, "meeting-notes.md", "hello there")
+	writeTestNote(t, tmpDir, "math-notes.md", "123 456 789")
 	writeTestNote(t, tmpDir, "zebra.md", "z")
 	writeTestNote(t, tmpDir, "ignore.txt", "skip")
 
@@ -91,11 +91,11 @@ func TestFindNoteMatchesFiltersSortsAndAddsMetadata(t *testing.T) {
 		t.Fatalf("matches[1].name = %q, want %q", matches[1].name, "meeting-notes.md")
 	}
 
-	if matches[0].charCount != 9 {
-		t.Fatalf("matches[0].charCount = %d, want 9", matches[0].charCount)
+	if matches[0].wordCount != 3 {
+		t.Fatalf("matches[0].wordCount = %d, want 3", matches[0].wordCount)
 	}
-	if matches[1].charCount != 5 {
-		t.Fatalf("matches[1].charCount = %d, want 5", matches[1].charCount)
+	if matches[1].wordCount != 2 {
+		t.Fatalf("matches[1].wordCount = %d, want 2", matches[1].wordCount)
 	}
 	if matches[0].sizeBytes <= 0 {
 		t.Fatalf("matches[0].sizeBytes = %d, want > 0", matches[0].sizeBytes)
@@ -174,6 +174,28 @@ func TestFormatNoteUpdatedAt(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := formatNoteUpdatedAt(tt.modTime); got != tt.want {
 				t.Fatalf("formatNoteUpdatedAt(%v) = %q, want %q", tt.modTime, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestHumanSize(t *testing.T) {
+	tests := []struct {
+		name string
+		size int64
+		want string
+	}{
+		{name: "small bytes", size: 12, want: "12 B"},
+		{name: "promotes to kilobytes", size: 425, want: "0.4 KB"},
+		{name: "kilobytes", size: 1536, want: "1.5 KB"},
+		{name: "promotes to megabytes", size: 60 * 1024, want: "0.1 MB"},
+		{name: "megabytes", size: 2 * 1024 * 1024, want: "2.0 MB"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := humanSize(tt.size); got != tt.want {
+				t.Fatalf("humanSize(%d) = %q, want %q", tt.size, got, tt.want)
 			}
 		})
 	}

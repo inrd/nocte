@@ -3,6 +3,7 @@ package app
 import (
 	"errors"
 	"fmt"
+	"math"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -98,7 +99,7 @@ type noteMatch struct {
 	name      string
 	path      string
 	score     int
-	charCount int
+	wordCount int
 	sizeBytes int64
 	modTime   time.Time
 }
@@ -921,7 +922,7 @@ func (m Model) findNoteMatches(query string) []noteMatch {
 		matches = append(matches, noteMatch{
 			name:      name,
 			path:      path,
-			charCount: len([]rune(string(content))),
+			wordCount: len(strings.Fields(string(content))),
 			sizeBytes: info.Size(),
 			modTime:   info.ModTime(),
 		})
@@ -969,7 +970,7 @@ func (m Model) listNotes() []noteMatch {
 }
 
 func noteMeta(note noteMatch) string {
-	return fmt.Sprintf("%d chars | %s", note.charCount, humanSize(note.sizeBytes))
+	return fmt.Sprintf("%d words | %s", note.wordCount, humanSize(note.sizeBytes))
 }
 
 func formatNoteUpdatedAt(modTime time.Time) string {
@@ -1001,12 +1002,20 @@ func sameDay(a time.Time, b time.Time) bool {
 
 func humanSize(size int64) string {
 	kb := float64(size) / 1024
-	if kb < 1024 {
+	mb := kb / 1024
+	if roundToTenths(mb) >= 0.1 {
+		return fmt.Sprintf("%.1f MB", mb)
+	}
+
+	if roundToTenths(kb) >= 0.1 {
 		return fmt.Sprintf("%.1f KB", kb)
 	}
 
-	mb := kb / 1024
-	return fmt.Sprintf("%.1f MB", mb)
+	return fmt.Sprintf("%d B", size)
+}
+
+func roundToTenths(value float64) float64 {
+	return math.Round(value*10) / 10
 }
 
 func truncateText(value string, width int) string {

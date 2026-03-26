@@ -28,7 +28,7 @@ Keep `README.md` updated on each iteration as user-facing behavior, setup, and w
 
 - New notes are created from the main input.
 - Typing a note name in the main input should show a fuzzy note-search palette for existing notes.
-- Running `:list` should show all existing notes in a dialog sorted by last updated, with the updated date/time in green alongside character count and file size metadata.
+- Running `:list` should show all existing notes in a dialog sorted by last updated, with the updated date/time in green alongside word count and file size metadata.
 - Existing note matches should not be selected by default.
 - Pressing `Up` or `Down` should move through note matches, and pressing `Enter` with a selected match should open that note in the editor.
 - In the `:list` dialog, `Up` and `Down` should move through the full note list, scrolling when needed, and `Enter` should open the selected note in the editor.
