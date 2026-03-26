@@ -42,7 +42,7 @@ func (m *Model) openEditor(path string, name string) {
 	m.isError = false
 }
 
-func (m *Model) closeEditor() {
+func (m *Model) closeEditor(saved bool) {
 	name := m.editorName
 	m.editorPath = ""
 	m.editorName = ""
@@ -54,7 +54,11 @@ func (m *Model) closeEditor() {
 	m.input.SetValue("")
 	m.input.Focus()
 	m.syncLauncherState()
-	m.status = fmt.Sprintf("Saved and closed %s", name)
+	if saved {
+		m.status = fmt.Sprintf("Saved and closed %s", name)
+	} else {
+		m.status = fmt.Sprintf("Closed %s without changes", name)
+	}
 	m.isError = false
 }
 
@@ -92,20 +96,20 @@ func (m *Model) resizeEditor() {
 	m.editor.SetHeight(height)
 }
 
-func (m *Model) saveEditor() error {
+func (m *Model) saveEditor() (bool, error) {
 	content := m.editor.Value()
 	if content == m.lastSaved {
-		return nil
+		return false, nil
 	}
 
 	if err := os.WriteFile(m.editorPath, []byte(content), 0o644); err != nil {
-		return fmt.Errorf("could not save %s: %w", m.editorName, err)
+		return false, fmt.Errorf("could not save %s: %w", m.editorName, err)
 	}
 
 	m.lastSaved = content
 	m.status = fmt.Sprintf("Saved %s", m.editorName)
 	m.isError = false
-	return nil
+	return true, nil
 }
 
 func (m *Model) discardEmptyCreatedNote() (bool, error) {
@@ -145,12 +149,13 @@ func (m *Model) finishEditing(action string) bool {
 			m.editorAction = ""
 			return true
 		}
-		m.closeEditor()
+		m.closeEditor(false)
 		m.status = fmt.Sprintf("Discarded empty note %s", name)
 		return false
 	}
 
-	if err := m.saveEditor(); err != nil {
+	saved, err := m.saveEditor()
+	if err != nil {
 		m.activeDialog = "save-error"
 		m.editorAction = action
 		m.status = err.Error()
@@ -163,7 +168,7 @@ func (m *Model) finishEditing(action string) bool {
 		return true
 	}
 
-	m.closeEditor()
+	m.closeEditor(saved)
 	return false
 }
 

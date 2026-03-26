@@ -63,6 +63,31 @@ func TestUpdateEscWhileEditingSavesAndClosesEditor(t *testing.T) {
 	}
 }
 
+func TestUpdateEscWithoutChangesClosesEditorWithoutSaveMessage(t *testing.T) {
+	tmpDir := t.TempDir()
+	notePath := writeTestNote(t, tmpDir, "draft.md", "before")
+
+	model := New(config.Config{NotesPath: tmpDir}, "", "test")
+	model.openEditor(notePath, "draft.md")
+
+	model = updateModel(t, model, tea.KeyMsg{Type: tea.KeyEsc})
+
+	if model.isEditing() {
+		t.Fatalf("model should not be editing after escape")
+	}
+	if model.status != "Closed draft.md without changes" {
+		t.Fatalf("status = %q, want %q", model.status, "Closed draft.md without changes")
+	}
+
+	data, err := os.ReadFile(notePath)
+	if err != nil {
+		t.Fatalf("ReadFile(%q) error = %v", notePath, err)
+	}
+	if string(data) != "before" {
+		t.Fatalf("saved content = %q, want %q", string(data), "before")
+	}
+}
+
 func TestUpdateEscDeletesEmptyNewNote(t *testing.T) {
 	tmpDir := t.TempDir()
 	model := New(config.Config{NotesPath: tmpDir}, "", "test")
@@ -113,8 +138,8 @@ func TestUpdateEscKeepsExistingEmptyNote(t *testing.T) {
 	if _, err := os.Stat(notePath); err != nil {
 		t.Fatalf("Stat(%q) error = %v, want file to remain", notePath, err)
 	}
-	if model.status != "Saved and closed empty.md" {
-		t.Fatalf("status = %q, want %q", model.status, "Saved and closed empty.md")
+	if model.status != "Closed empty.md without changes" {
+		t.Fatalf("status = %q, want %q", model.status, "Closed empty.md without changes")
 	}
 }
 
