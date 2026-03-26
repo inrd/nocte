@@ -84,6 +84,32 @@ func (m *Model) discardEditor() {
 	m.isError = false
 }
 
+func (m *Model) deleteEditorNote() error {
+	name := m.editorName
+	if err := os.Remove(m.editorPath); err != nil {
+		return fmt.Errorf("could not delete %s: %w", name, err)
+	}
+
+	m.editorPath = ""
+	m.editorName = ""
+	m.lastSaved = ""
+	m.editorCreated = false
+	m.editorAction = ""
+	m.activeDialog = ""
+	m.dialogNotes = nil
+	m.dialogLinks = nil
+	m.dialogIndex = -1
+	m.dialogOffset = 0
+	m.editor.SetValue("")
+	m.editor.Blur()
+	m.input.SetValue("")
+	m.input.Focus()
+	m.syncLauncherState()
+	m.status = fmt.Sprintf("Deleted %s", name)
+	m.isError = false
+	return nil
+}
+
 func (m *Model) resizeEditor() {
 	width := m.editorPaneWidth()
 	height := 12

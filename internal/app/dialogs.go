@@ -17,6 +17,8 @@ func (m Model) dialogView() string {
 		return m.listDialog()
 	case "links":
 		return m.linksDialog()
+	case "delete-confirm":
+		return m.deleteConfirmDialog()
 	case "save-error":
 		return m.saveErrorDialog()
 	default:
@@ -107,6 +109,19 @@ func (m Model) saveErrorDialog() string {
 
 	if m.editorAction == "quit" {
 		lines[4] = "Press Enter to discard your unsaved changes and quit."
+	}
+
+	return dialogStyle.Render(lipgloss.JoinVertical(lipgloss.Left, lines...))
+}
+
+func (m Model) deleteConfirmDialog() string {
+	lines := []string{
+		dialogTitleStyle.Render("Delete Note"),
+		"",
+		errorStyle.Render(fmt.Sprintf("Delete %s?", m.editorName)),
+		"",
+		"Press Enter to delete this note.",
+		"Press Esc to keep editing.",
 	}
 
 	return dialogStyle.Render(lipgloss.JoinVertical(lipgloss.Left, lines...))

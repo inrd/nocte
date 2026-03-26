@@ -223,6 +223,66 @@ func TestUpdateCtrlLOpensLinksDialogAndEnterOpensSelectedLink(t *testing.T) {
 	}
 }
 
+func TestUpdateCtrlDOpensDeleteConfirmationAndEscCancels(t *testing.T) {
+	tmpDir := t.TempDir()
+	notePath := writeTestNote(t, tmpDir, "draft.md", "before")
+
+	model := New(config.Config{NotesPath: tmpDir}, "", "test")
+	model.openEditor(notePath, "draft.md")
+
+	model = updateModel(t, model, tea.KeyMsg{Type: tea.KeyCtrlD})
+
+	if model.activeDialog != "delete-confirm" {
+		t.Fatalf("activeDialog = %q, want %q", model.activeDialog, "delete-confirm")
+	}
+	if !model.isEditing() {
+		t.Fatalf("model should still be editing while confirming deletion")
+	}
+
+	model = updateModel(t, model, tea.KeyMsg{Type: tea.KeyEsc})
+
+	if model.activeDialog != "" {
+		t.Fatalf("activeDialog = %q, want empty after cancel", model.activeDialog)
+	}
+	if !model.isEditing() {
+		t.Fatalf("model should continue editing after cancel")
+	}
+	if model.status != "Still editing draft.md" {
+		t.Fatalf("status = %q, want %q", model.status, "Still editing draft.md")
+	}
+	if _, err := os.Stat(notePath); err != nil {
+		t.Fatalf("Stat(%q) error = %v, want file to remain", notePath, err)
+	}
+}
+
+func TestUpdateCtrlDEnterDeletesNoteAndReturnsToLauncher(t *testing.T) {
+	tmpDir := t.TempDir()
+	notePath := writeTestNote(t, tmpDir, "draft.md", "before")
+
+	model := New(config.Config{NotesPath: tmpDir}, "", "test")
+	model.openEditor(notePath, "draft.md")
+	model.editor.SetValue("after")
+
+	model = updateModel(t, model, tea.KeyMsg{Type: tea.KeyCtrlD})
+	model = updateModel(t, model, tea.KeyMsg{Type: tea.KeyEnter})
+
+	if model.isEditing() {
+		t.Fatalf("model should not be editing after deletion")
+	}
+	if model.activeDialog != "" {
+		t.Fatalf("activeDialog = %q, want empty after deletion", model.activeDialog)
+	}
+	if model.status != "Deleted draft.md" {
+		t.Fatalf("status = %q, want %q", model.status, "Deleted draft.md")
+	}
+	if model.input.Value() != "" {
+		t.Fatalf("input.Value() = %q, want empty", model.input.Value())
+	}
+	if _, err := os.Stat(notePath); !os.IsNotExist(err) {
+		t.Fatalf("Stat(%q) error = %v, want not exist", notePath, err)
+	}
+}
+
 func TestExtractNoteLinksFindsMarkdownAndBareURLs(t *testing.T) {
 	links := extractNoteLinks("See [Docs](https://example.com/docs).\nRaw https://example.com/raw,\nagain [Docs](https://example.com/docs)")
 
@@ -272,7 +332,7 @@ func TestEditorViewShowsMarkdownPreviewWhenVisible(t *testing.T) {
 	if !strings.Contains(view, "Preview (read-only)") {
 		t.Fatalf("editorView() missing preview label: %q", view)
 	}
-	if !strings.Contains(view, "Ctrl+P") || !strings.Contains(view, "Ctrl+L") || !strings.Contains(view, "Esc") || !strings.Contains(view, "Ctrl+C") {
+	if !strings.Contains(view, "Ctrl+P") || !strings.Contains(view, "Ctrl+L") || !strings.Contains(view, "Ctrl+D") || !strings.Contains(view, "Esc") || !strings.Contains(view, "Ctrl+C") {
 		t.Fatalf("editorView() missing preview shortcut help: %q", view)
 	}
 	if strings.Contains(view, "Plain text editor with live Markdown preview") {

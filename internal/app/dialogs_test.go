@@ -69,3 +69,17 @@ func TestLinksDialogShowsLabelAndURL(t *testing.T) {
 		t.Fatalf("linksDialog() missing url: %q", rendered)
 	}
 }
+
+func TestDeleteConfirmDialogShowsNoteName(t *testing.T) {
+	model := New(config.Config{}, "", "test")
+	model.editorName = "draft.md"
+
+	rendered := model.deleteConfirmDialog()
+
+	if !strings.Contains(rendered, "Delete draft.md?") {
+		t.Fatalf("deleteConfirmDialog() missing note name: %q", rendered)
+	}
+	if !strings.Contains(rendered, "Press Enter to delete this note.") {
+		t.Fatalf("deleteConfirmDialog() missing confirm instructions: %q", rendered)
+	}
+}

@@ -220,6 +220,14 @@ func (m *Model) closeDialog() {
 		return
 	}
 
+	if m.activeDialog == "delete-confirm" {
+		m.activeDialog = ""
+		m.status = fmt.Sprintf("Still editing %s", m.editorName)
+		m.isError = false
+		m.editor.Focus()
+		return
+	}
+
 	if m.isEditing() {
 		m.activeDialog = ""
 		m.dialogLinks = nil

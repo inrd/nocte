@@ -43,6 +43,7 @@ Keep `README.md` focused on meaningful user-facing capabilities and workflow. Av
 - The initial note editor is plain text only, saves on close when content changed, and otherwise closes without rewriting the file.
 - The editor can show a toggleable live Markdown preview, controlled by keyboard shortcut and documented below the editor, including nested Markdown list indentation.
 - Pressing `Ctrl+L` in the editor should open a dialog listing links found in the current note, with visually distinct labels and URLs, and pressing `Enter` on a selected link should open it in the default web browser.
+- Pressing `Ctrl+D` in the editor should open a confirmation alert for deleting the current note, prevent terminal EOF handling, and on confirm delete the note and return to the launcher.
 - The editor must support long notes without truncating content.
 - The editor footer should show the current note size and warn when a very large note may slow editing or saving.
 - If saving on editor exit fails, the app should warn before discarding unsaved changes.

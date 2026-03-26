@@ -129,9 +129,40 @@ func (m Model) updateEditorKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
+	if m.activeDialog == "delete-confirm" {
+		switch msg.String() {
+		case "ctrl+c":
+			if err := m.deleteEditorNote(); err != nil {
+				m.activeDialog = ""
+				m.status = err.Error()
+				m.isError = true
+				return m, nil
+			}
+			return m, tea.Quit
+		case "enter":
+			if err := m.deleteEditorNote(); err != nil {
+				m.activeDialog = ""
+				m.status = err.Error()
+				m.isError = true
+				return m, nil
+			}
+			return m, nil
+		case "esc", "ctrl+d":
+			m.closeDialog()
+			return m, nil
+		}
+
+		return m, nil
+	}
+
 	switch msg.String() {
 	case "ctrl+l":
 		m.openLinksDialog()
+		return m, nil
+	case "ctrl+d":
+		m.activeDialog = "delete-confirm"
+		m.status = ""
+		m.isError = false
 		return m, nil
 	case "ctrl+p":
 		m.togglePreview()

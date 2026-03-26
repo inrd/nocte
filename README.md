@@ -21,6 +21,7 @@ export PATH="$HOME/.local/bin:$PATH"
 - Browse all notes with `:list`
 - Edit notes in a plain text editor with an optional live Markdown preview
 - Open note links from the editor with a keyboard shortcut
+- Delete the current note from the editor with an in-app confirmation dialog
 - Notes are saved on editor exit when content changed, and brand-new untouched empty notes are discarded
 
 ## How To Use It
@@ -31,6 +32,7 @@ export PATH="$HOME/.local/bin:$PATH"
 - Press `Enter` without selecting a match to create a new note
 - Press `Ctrl+P` in the editor to toggle the live Markdown preview
 - Press `Ctrl+L` in the editor to open a dialog of links in the current note, then press `Enter` to open one in your default browser
+- Press `Ctrl+D` in the editor to delete the current note after confirming, then return to the launcher
 - Use `:list` to browse every note sorted by last update
 
 ## Commands
