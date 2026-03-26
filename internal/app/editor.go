@@ -1,0 +1,134 @@
+package app
+
+import (
+	"errors"
+	"fmt"
+	"os"
+)
+
+func (m Model) isEditing() bool {
+	return m.editorPath != ""
+}
+
+func (m *Model) openEditor(path string, name string) {
+	content, err := os.ReadFile(path)
+	if err != nil {
+		m.status = fmt.Sprintf("Could not open %s: %v", name, err)
+		m.isError = true
+		return
+	}
+
+	m.editorPath = path
+	m.editorName = name
+	m.lastSaved = string(content)
+	m.editor.SetValue(m.lastSaved)
+	m.editor.Focus()
+	m.resizeEditor()
+	m.input.SetValue("")
+	m.input.Blur()
+	m.activeDialog = ""
+	m.commandIndex = 0
+	m.noteIndex = -1
+	m.noteMatches = nil
+	m.dialogNotes = nil
+	m.dialogIndex = -1
+	m.dialogOffset = 0
+	m.editorAction = ""
+	m.status = fmt.Sprintf("Editing %s", name)
+	m.isError = false
+}
+
+func (m *Model) closeEditor() {
+	name := m.editorName
+	m.editorPath = ""
+	m.editorName = ""
+	m.lastSaved = ""
+	m.editorAction = ""
+	m.editor.SetValue("")
+	m.editor.Blur()
+	m.input.SetValue("")
+	m.input.Focus()
+	m.syncLauncherState()
+	m.status = fmt.Sprintf("Saved and closed %s", name)
+	m.isError = false
+}
+
+func (m *Model) discardEditor() {
+	name := m.editorName
+	action := m.editorAction
+	m.editorPath = ""
+	m.editorName = ""
+	m.lastSaved = ""
+	m.editorAction = ""
+	m.editor.SetValue("")
+	m.editor.Blur()
+	m.activeDialog = ""
+	m.input.SetValue("")
+	m.input.Focus()
+	m.syncLauncherState()
+	if action == "quit" {
+		m.status = fmt.Sprintf("Discarded changes in %s and quit", name)
+	} else {
+		m.status = fmt.Sprintf("Discarded changes in %s", name)
+	}
+	m.isError = false
+}
+
+func (m *Model) resizeEditor() {
+	width := 64
+	height := 12
+
+	if m.width > 0 {
+		width = max(24, m.width-12)
+	}
+
+	if m.height > 0 {
+		height = max(8, m.height-10)
+	}
+
+	m.editor.SetWidth(width)
+	m.editor.SetHeight(height)
+}
+
+func (m *Model) saveEditor() error {
+	content := m.editor.Value()
+	if content == m.lastSaved {
+		return nil
+	}
+
+	if err := os.WriteFile(m.editorPath, []byte(content), 0o644); err != nil {
+		return fmt.Errorf("could not save %s: %w", m.editorName, err)
+	}
+
+	m.lastSaved = content
+	m.status = fmt.Sprintf("Saved %s", m.editorName)
+	m.isError = false
+	return nil
+}
+
+func (m *Model) finishEditing(action string) bool {
+	if err := m.saveEditor(); err != nil {
+		m.activeDialog = "save-error"
+		m.editorAction = action
+		m.status = err.Error()
+		m.isError = true
+		return false
+	}
+
+	if action == "quit" {
+		m.editorAction = ""
+		return true
+	}
+
+	m.closeEditor()
+	return false
+}
+
+func (m *Model) openExistingNote(note noteMatch) error {
+	m.openEditor(note.path, note.name)
+	if m.isError {
+		return errors.New(m.status)
+	}
+
+	return nil
+}

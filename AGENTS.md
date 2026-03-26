@@ -22,7 +22,7 @@ Keep `README.md` focused on meaningful user-facing capabilities and workflow. Av
 - Language: Go
 - TUI: Bubble Tea, Bubbles, Lip Gloss
 - Entry point: `cmd/nocte`
-- App state/UI: `internal/app`
+- App state/UI: `internal/app`, split into focused files by responsibility while keeping the single `Model` as the central app state
 - Config: `internal/config`
 
 ## Important Behavior

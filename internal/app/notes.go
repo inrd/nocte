@@ -1,0 +1,225 @@
+package app
+
+import (
+	"fmt"
+	"os"
+	"path/filepath"
+	"sort"
+	"strings"
+)
+
+func sanitizeFilename(input string) (string, error) {
+	trimmed := strings.TrimSpace(input)
+	if trimmed == "" {
+		return "", fmt.Errorf("Note name cannot be blank")
+	}
+
+	normalized := strings.ToLower(trimmed)
+	normalized = strings.ReplaceAll(normalized, " ", "-")
+	normalized = invalidFileChars.ReplaceAllString(normalized, "-")
+	normalized = strings.Trim(normalized, "-.")
+
+	if normalized == "" {
+		return "", fmt.Errorf("Note name must contain letters or numbers")
+	}
+
+	return normalized, nil
+}
+
+func (m Model) shouldShowNotePalette() bool {
+	return !m.isCommandMode() && strings.TrimSpace(m.input.Value()) != ""
+}
+
+func (m Model) hasNotePalette() bool {
+	return m.shouldShowNotePalette() && len(m.noteMatches) > 0
+}
+
+func (m *Model) syncLauncherState() {
+	if m.isCommandMode() {
+		m.syncCommandSelection()
+		m.noteMatches = nil
+		m.noteIndex = -1
+		return
+	}
+
+	m.commandIndex = 0
+	m.noteMatches = m.findNoteMatches(strings.TrimSpace(m.input.Value()))
+	m.noteIndex = -1
+}
+
+func (m *Model) moveNoteSelection(delta int) {
+	if len(m.noteMatches) == 0 {
+		m.noteIndex = -1
+		return
+	}
+
+	if m.noteIndex == -1 {
+		if delta > 0 {
+			m.noteIndex = 0
+			return
+		}
+
+		m.noteIndex = len(m.noteMatches) - 1
+		return
+	}
+
+	m.noteIndex = (m.noteIndex + delta + len(m.noteMatches)) % len(m.noteMatches)
+}
+
+func (m *Model) openListDialog() {
+	m.activeDialog = "list"
+	m.dialogNotes = m.listNotes()
+	m.dialogIndex = -1
+	m.dialogOffset = 0
+	if len(m.dialogNotes) > 0 {
+		m.dialogIndex = 0
+	}
+	m.input.SetValue(":list")
+	m.input.Blur()
+	m.status = ""
+	m.isError = false
+}
+
+func (m *Model) moveDialogSelection(delta int) {
+	if len(m.dialogNotes) == 0 {
+		m.dialogIndex = -1
+		m.dialogOffset = 0
+		return
+	}
+
+	m.dialogIndex = (m.dialogIndex + delta + len(m.dialogNotes)) % len(m.dialogNotes)
+	m.syncDialogOffset()
+}
+
+func (m *Model) openSelectedDialogNote() error {
+	if len(m.dialogNotes) == 0 {
+		m.closeDialog()
+		return nil
+	}
+
+	if m.dialogIndex < 0 || m.dialogIndex >= len(m.dialogNotes) {
+		m.dialogIndex = 0
+	}
+
+	return m.openExistingNote(m.dialogNotes[m.dialogIndex])
+}
+
+func (m *Model) syncDialogOffset() {
+	visible := m.dialogVisibleCount()
+	if visible <= 0 {
+		m.dialogOffset = 0
+		return
+	}
+
+	maxOffset := max(0, len(m.dialogNotes)-visible)
+	if m.dialogOffset > maxOffset {
+		m.dialogOffset = maxOffset
+	}
+
+	if m.dialogIndex < m.dialogOffset {
+		m.dialogOffset = m.dialogIndex
+	}
+
+	if m.dialogIndex >= m.dialogOffset+visible {
+		m.dialogOffset = m.dialogIndex - visible + 1
+	}
+}
+
+func (m Model) findNoteMatches(query string) []noteMatch {
+	entries, err := os.ReadDir(m.config.NotesPath)
+	if err != nil {
+		return nil
+	}
+
+	matches := make([]noteMatch, 0, len(entries))
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+
+		name := entry.Name()
+		if filepath.Ext(name) != ".md" {
+			continue
+		}
+
+		path := filepath.Join(m.config.NotesPath, name)
+		info, err := entry.Info()
+		if err != nil {
+			continue
+		}
+
+		content, err := os.ReadFile(path)
+		if err != nil {
+			continue
+		}
+
+		matches = append(matches, noteMatch{
+			name:      name,
+			path:      path,
+			wordCount: len(strings.Fields(string(content))),
+			sizeBytes: info.Size(),
+			modTime:   info.ModTime(),
+		})
+	}
+
+	if query == "" {
+		sort.Slice(matches, func(i int, j int) bool {
+			return matches[i].name < matches[j].name
+		})
+		return matches
+	}
+
+	filtered := make([]noteMatch, 0, len(matches))
+	for _, note := range matches {
+		score, ok := fuzzyScore(strings.TrimSuffix(note.name, filepath.Ext(note.name)), query)
+		if !ok {
+			continue
+		}
+
+		note.score = score
+		filtered = append(filtered, note)
+	}
+
+	sort.Slice(filtered, func(i int, j int) bool {
+		if filtered[i].score == filtered[j].score {
+			return filtered[i].name < filtered[j].name
+		}
+		return filtered[i].score < filtered[j].score
+	})
+
+	return filtered
+}
+
+func (m Model) listNotes() []noteMatch {
+	notes := m.findNoteMatches("")
+	sort.Slice(notes, func(i int, j int) bool {
+		if notes[i].modTime.Equal(notes[j].modTime) {
+			return notes[i].name < notes[j].name
+		}
+
+		return notes[i].modTime.After(notes[j].modTime)
+	})
+
+	return notes
+}
+
+func noteMeta(note noteMatch) string {
+	return fmt.Sprintf("%d words | %s", note.wordCount, humanSize(note.sizeBytes))
+}
+
+func (m *Model) closeDialog() {
+	if m.activeDialog == "save-error" {
+		m.activeDialog = ""
+		m.editorAction = ""
+		m.status = fmt.Sprintf("Still editing %s", m.editorName)
+		m.isError = false
+		return
+	}
+
+	m.activeDialog = ""
+	m.dialogNotes = nil
+	m.dialogIndex = -1
+	m.dialogOffset = 0
+	m.input.SetValue("")
+	m.input.Focus()
+}
