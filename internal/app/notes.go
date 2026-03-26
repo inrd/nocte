@@ -81,13 +81,14 @@ func (m *Model) openListDialog() {
 }
 
 func (m *Model) moveDialogSelection(delta int) {
-	if len(m.dialogNotes) == 0 {
+	total := m.dialogItems()
+	if total == 0 {
 		m.dialogIndex = -1
 		m.dialogOffset = 0
 		return
 	}
 
-	m.dialogIndex = (m.dialogIndex + delta + len(m.dialogNotes)) % len(m.dialogNotes)
+	m.dialogIndex = (m.dialogIndex + delta + total) % total
 	m.syncDialogOffset()
 }
 
@@ -112,6 +113,9 @@ func (m *Model) syncDialogOffset() {
 	}
 
 	maxOffset := max(0, len(m.dialogNotes)-visible)
+	if m.activeDialog == "links" {
+		maxOffset = max(0, len(m.dialogLinks)-visible)
+	}
 	if m.dialogOffset > maxOffset {
 		m.dialogOffset = maxOffset
 	}
@@ -216,10 +220,29 @@ func (m *Model) closeDialog() {
 		return
 	}
 
+	if m.isEditing() {
+		m.activeDialog = ""
+		m.dialogLinks = nil
+		m.dialogIndex = -1
+		m.dialogOffset = 0
+		m.editor.Focus()
+		return
+	}
+
 	m.activeDialog = ""
 	m.dialogNotes = nil
+	m.dialogLinks = nil
 	m.dialogIndex = -1
 	m.dialogOffset = 0
 	m.input.SetValue("")
 	m.input.Focus()
+}
+
+func (m Model) dialogItems() int {
+	switch m.activeDialog {
+	case "links":
+		return len(m.dialogLinks)
+	default:
+		return len(m.dialogNotes)
+	}
 }

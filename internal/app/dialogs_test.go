@@ -50,3 +50,22 @@ func TestListDialogKeepsTimestampOnOneLineWhenWideEnough(t *testing.T) {
 		t.Fatalf("listDialog() = %q, want single-line timestamp", rendered)
 	}
 }
+
+func TestLinksDialogShowsLabelAndURL(t *testing.T) {
+	model := New(config.Config{}, "", "test")
+	model.width = 100
+	model.activeDialog = "links"
+	model.dialogLinks = []noteLink{
+		{label: "Project board", url: "https://example.com/board"},
+	}
+	model.dialogIndex = 0
+
+	rendered := model.linksDialog()
+
+	if !strings.Contains(rendered, "Project board") {
+		t.Fatalf("linksDialog() missing label: %q", rendered)
+	}
+	if !strings.Contains(rendered, "https://example.com/board") {
+		t.Fatalf("linksDialog() missing url: %q", rendered)
+	}
+}

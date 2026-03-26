@@ -8,6 +8,7 @@
 - Fuzzy-search existing notes as you type
 - Browse all notes with `:list`
 - Edit notes in a plain text editor with an optional live Markdown preview
+- Open note links from the editor with a keyboard shortcut
 - Notes are automatically saved on editor exit
 
 ## How To Use It
@@ -17,6 +18,7 @@
 - Press `Enter` on a selected match to open it
 - Press `Enter` without selecting a match to create a new note
 - Press `Ctrl+P` in the editor to toggle the live Markdown preview
+- Press `Ctrl+L` in the editor to open a dialog of links in the current note, then press `Enter` to open one in your default browser
 - Use `:list` to browse every note sorted by last update
 
 ## Commands

@@ -15,6 +15,8 @@ func (m Model) dialogView() string {
 		return infoDialog(m.version, m.configPath, m.config.NotesPath)
 	case "list":
 		return m.listDialog()
+	case "links":
+		return m.linksDialog()
 	case "save-error":
 		return m.saveErrorDialog()
 	default:
@@ -110,14 +112,52 @@ func (m Model) saveErrorDialog() string {
 	return dialogStyle.Render(lipgloss.JoinVertical(lipgloss.Left, lines...))
 }
 
+func (m Model) linksDialog() string {
+	dialogStyle := m.listDialogStyle()
+	lines := []string{
+		dialogTitleStyle.Render("Links"),
+		"",
+	}
+
+	if len(m.dialogLinks) == 0 {
+		lines = append(lines, helpStyle.Render("No links found in this note."))
+		lines = append(lines, "")
+		lines = append(lines, helpStyle.Render("Press Esc or Enter to close."))
+		return dialogStyle.Render(lipgloss.JoinVertical(lipgloss.Left, lines...))
+	}
+
+	start, end := m.dialogRange()
+	if start > 0 {
+		lines = append(lines, helpStyle.Render("..."))
+	}
+
+	for i := start; i < end; i++ {
+		line := m.linkDialogLine(m.dialogLinks[i], i == m.dialogIndex)
+		if i == m.dialogIndex {
+			lines = append(lines, commandSelectedStyle.Render(line))
+			continue
+		}
+		lines = append(lines, line)
+	}
+
+	if end < len(m.dialogLinks) {
+		lines = append(lines, helpStyle.Render("..."))
+	}
+
+	lines = append(lines, "")
+	lines = append(lines, helpStyle.Render("Use Up and Down to choose. Press Enter to open or Esc to close."))
+	return dialogStyle.Render(lipgloss.JoinVertical(lipgloss.Left, lines...))
+}
+
 func (m Model) dialogRange() (int, int) {
 	visible := m.dialogVisibleCount()
-	if visible <= 0 || len(m.dialogNotes) <= visible {
-		return 0, len(m.dialogNotes)
+	total := m.dialogItems()
+	if visible <= 0 || total <= visible {
+		return 0, total
 	}
 
 	start := max(0, m.dialogOffset)
-	end := min(len(m.dialogNotes), start+visible)
+	end := min(total, start+visible)
 	return start, end
 }
 
@@ -163,5 +203,31 @@ func (m Model) listDialogLine(note noteMatch) string {
 		updated,
 		strings.Repeat(" ", listColumnGap),
 		meta,
+	)
+}
+
+func (m Model) linkDialogLine(link noteLink, selected bool) string {
+	dialogStyle := m.listDialogStyle()
+	contentWidth := dialogStyle.GetWidth() - dialogStyle.GetHorizontalFrameSize()
+	labelWidth := max(16, (contentWidth-listColumnGap)/2)
+	urlWidth := max(16, contentWidth-labelWidth-listColumnGap)
+
+	label := link.label
+	if label == "" {
+		label = "(raw URL)"
+	}
+
+	labelStyle := linkLabelStyle.Copy()
+	urlStyle := linkURLStyle.Copy()
+	if selected {
+		labelStyle = labelStyle.Foreground(lipgloss.Color("0"))
+		urlStyle = urlStyle.Foreground(lipgloss.Color("0"))
+	}
+
+	return lipgloss.JoinHorizontal(
+		lipgloss.Left,
+		labelStyle.Width(labelWidth).Render(truncateText(label, labelWidth)),
+		strings.Repeat(" ", listColumnGap),
+		urlStyle.Width(urlWidth).Render(truncateText(link.url, urlWidth)),
 	)
 }

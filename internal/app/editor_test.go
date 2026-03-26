@@ -97,6 +97,66 @@ func TestUpdateCtrlPTogglesPreviewWhileEditing(t *testing.T) {
 	}
 }
 
+func TestUpdateCtrlLOpensLinksDialogAndEnterOpensSelectedLink(t *testing.T) {
+	tmpDir := t.TempDir()
+	notePath := writeTestNote(t, tmpDir, "draft.md", "[Docs](https://example.com/docs)\nhttps://example.com/raw")
+	original := openURLWithSystemApp
+	t.Cleanup(func() {
+		openURLWithSystemApp = original
+	})
+
+	var openedURL string
+	openURLWithSystemApp = func(rawURL string) error {
+		openedURL = rawURL
+		return nil
+	}
+
+	model := New(config.Config{NotesPath: tmpDir}, "", "test")
+	model.width = 96
+	model.openEditor(notePath, "draft.md")
+
+	model = updateModel(t, model, tea.KeyMsg{Type: tea.KeyCtrlL})
+
+	if model.activeDialog != "links" {
+		t.Fatalf("activeDialog = %q, want %q", model.activeDialog, "links")
+	}
+	if len(model.dialogLinks) != 2 {
+		t.Fatalf("len(dialogLinks) = %d, want 2", len(model.dialogLinks))
+	}
+	if model.dialogIndex != 0 {
+		t.Fatalf("dialogIndex = %d, want 0", model.dialogIndex)
+	}
+
+	model = updateModel(t, model, tea.KeyMsg{Type: tea.KeyEnter})
+
+	if openedURL != "https://example.com/docs" {
+		t.Fatalf("openedURL = %q, want %q", openedURL, "https://example.com/docs")
+	}
+	if model.activeDialog != "" {
+		t.Fatalf("activeDialog = %q, want empty after opening link", model.activeDialog)
+	}
+	if !model.isEditing() {
+		t.Fatalf("model should still be editing after opening link")
+	}
+	if model.status != "Opened link in browser" {
+		t.Fatalf("status = %q, want %q", model.status, "Opened link in browser")
+	}
+}
+
+func TestExtractNoteLinksFindsMarkdownAndBareURLs(t *testing.T) {
+	links := extractNoteLinks("See [Docs](https://example.com/docs).\nRaw https://example.com/raw,\nagain [Docs](https://example.com/docs)")
+
+	if len(links) != 2 {
+		t.Fatalf("len(extractNoteLinks()) = %d, want 2", len(links))
+	}
+	if links[0].label != "Docs" || links[0].url != "https://example.com/docs" {
+		t.Fatalf("links[0] = %#v, want Docs markdown link", links[0])
+	}
+	if links[1].label != "" || links[1].url != "https://example.com/raw" {
+		t.Fatalf("links[1] = %#v, want bare url", links[1])
+	}
+}
+
 func TestEditorViewShowsMarkdownPreviewWhenVisible(t *testing.T) {
 	tmpDir := t.TempDir()
 	notePath := writeTestNote(t, tmpDir, "draft.md", "# Title\n\n- item with `code`\n> quote\n[site](https://example.com)")
@@ -132,7 +192,7 @@ func TestEditorViewShowsMarkdownPreviewWhenVisible(t *testing.T) {
 	if !strings.Contains(view, "Preview (read-only)") {
 		t.Fatalf("editorView() missing preview label: %q", view)
 	}
-	if !strings.Contains(view, "Ctrl+P") || !strings.Contains(view, "Esc") || !strings.Contains(view, "Ctrl+C") {
+	if !strings.Contains(view, "Ctrl+P") || !strings.Contains(view, "Ctrl+L") || !strings.Contains(view, "Esc") || !strings.Contains(view, "Ctrl+C") {
 		t.Fatalf("editorView() missing preview shortcut help: %q", view)
 	}
 	if strings.Contains(view, "Plain text editor with live Markdown preview") {

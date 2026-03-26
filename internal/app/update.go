@@ -14,7 +14,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.width = msg.Width
 		m.height = msg.Height
 		m.resizeEditor()
-		if m.activeDialog == "list" {
+		if m.activeDialog == "list" || m.activeDialog == "links" {
 			m.syncDialogOffset()
 		}
 		return m, nil
@@ -85,6 +85,33 @@ func (m Model) updateKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) updateEditorKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	if m.activeDialog == "links" {
+		switch msg.String() {
+		case "ctrl+c":
+			if shouldQuit := m.finishEditing("quit"); shouldQuit {
+				return m, tea.Quit
+			}
+			return m, nil
+		case "ctrl+l":
+			m.closeDialog()
+			return m, nil
+		case "esc":
+			m.closeDialog()
+			return m, nil
+		case "up":
+			m.moveDialogSelection(-1)
+			return m, nil
+		case "down":
+			m.moveDialogSelection(1)
+			return m, nil
+		case "enter":
+			_ = m.openSelectedDialogLink()
+			return m, nil
+		}
+
+		return m, nil
+	}
+
 	if m.activeDialog == "save-error" {
 		switch msg.String() {
 		case "ctrl+c", "enter":
@@ -103,6 +130,9 @@ func (m Model) updateEditorKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	}
 
 	switch msg.String() {
+	case "ctrl+l":
+		m.openLinksDialog()
+		return m, nil
 	case "ctrl+p":
 		m.togglePreview()
 		return m, nil
@@ -129,12 +159,12 @@ func (m Model) updateDialogKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.closeDialog()
 		return m, nil
 	case "up":
-		if m.activeDialog == "list" {
+		if m.activeDialog == "list" || m.activeDialog == "links" {
 			m.moveDialogSelection(-1)
 		}
 		return m, nil
 	case "down":
-		if m.activeDialog == "list" {
+		if m.activeDialog == "list" || m.activeDialog == "links" {
 			m.moveDialogSelection(1)
 		}
 		return m, nil
@@ -144,6 +174,10 @@ func (m Model) updateDialogKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.status = err.Error()
 				m.isError = true
 			}
+			return m, nil
+		}
+		if m.activeDialog == "links" {
+			_ = m.openSelectedDialogLink()
 			return m, nil
 		}
 		m.closeDialog()

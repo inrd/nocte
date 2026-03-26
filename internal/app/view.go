@@ -69,6 +69,8 @@ func (m Model) editorView() string {
 		lipgloss.Left,
 		keyHintStyle.Render("Ctrl+P"),
 		helpStyle.Render(" preview  "),
+		keyHintStyle.Render("Ctrl+L"),
+		helpStyle.Render(" links  "),
 		keyHintStyle.Render("Esc"),
 		helpStyle.Render(" save & close  "),
 		keyHintStyle.Render("Ctrl+C"),
@@ -79,6 +81,8 @@ func (m Model) editorView() string {
 			lipgloss.Left,
 			keyHintStyle.Render("Ctrl+P"),
 			helpStyle.Render(" preview  "),
+			keyHintStyle.Render("Ctrl+L"),
+			helpStyle.Render(" links  "),
 			keyHintStyle.Render("Esc"),
 			helpStyle.Render(" save & close  "),
 			keyHintStyle.Render("Ctrl+C"),
@@ -100,7 +104,7 @@ func (m Model) editorView() string {
 
 	content := lipgloss.JoinVertical(lipgloss.Left, lines...)
 
-	if m.activeDialog == "save-error" {
+	if m.activeDialog != "" {
 		if m.width == 0 || m.height == 0 {
 			return docStyle.Render(lipgloss.JoinVertical(lipgloss.Center, content, m.dialogView()))
 		}

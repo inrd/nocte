@@ -70,6 +70,13 @@ var (
 
 	listUpdatedStyle = lipgloss.NewStyle()
 
+	linkLabelStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("12")).
+			Bold(true)
+
+	linkURLStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("8"))
+
 	previewHeadingStyle = lipgloss.NewStyle().
 				Bold(true).
 				Foreground(lipgloss.Color("12"))
@@ -99,6 +106,7 @@ var (
 
 	invalidFileChars      = regexp.MustCompile(`[^a-z0-9._-]+`)
 	openPathWithSystemApp = openPath
+	openURLWithSystemApp  = openURL
 	commands              = []command{
 		{name: ":help", description: "Show available commands"},
 		{name: ":files", description: "Open the notes folder"},
@@ -123,6 +131,7 @@ type Model struct {
 	noteIndex      int
 	noteMatches    []noteMatch
 	dialogNotes    []noteMatch
+	dialogLinks    []noteLink
 	dialogIndex    int
 	dialogOffset   int
 	editorPath     string
@@ -144,6 +153,11 @@ type noteMatch struct {
 	wordCount int
 	sizeBytes int64
 	modTime   time.Time
+}
+
+type noteLink struct {
+	label string
+	url   string
 }
 
 func New(cfg config.Config, configPath string, version string) Model {
