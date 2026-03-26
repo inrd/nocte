@@ -1,6 +1,7 @@
 package app
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -791,7 +792,7 @@ func (m *Model) moveNoteSelection(delta int) {
 func (m *Model) openExistingNote(note noteMatch) error {
 	m.openEditor(note.path, note.name)
 	if m.isError {
-		return fmt.Errorf(m.status)
+		return errors.New(m.status)
 	}
 
 	return nil

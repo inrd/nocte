@@ -50,6 +50,7 @@ Use the Make targets instead of raw Go commands when practical:
 
 - `make run`
 - `make build`
+- `make test`
 - `make fmt`
 - `make tidy`
 
@@ -62,6 +63,7 @@ The repo uses workspace-local `GOCACHE` and `GOMODCACHE` through the `Makefile`.
 - Do not introduce large frameworks or complex abstractions early.
 - Keep UI text concise and practical.
 - Preserve cross-platform behavior for macOS and Linux.
+- Add or update tests when introducing new behavior or changing existing behavior.
 - When adding commands, make them discoverable through `:help`.
 
 ## Near-Term Priorities
@@ -69,3 +71,4 @@ The repo uses workspace-local `GOCACHE` and `GOMODCACHE` through the `Makefile`.
 - Grow the command palette gradually.
 - Introduce safer note-opening and existing-note flows.
 - Keep config and storage paths explicit and inspectable.
+- Expand test coverage in small steps around current helper logic and note workflows.
