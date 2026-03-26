@@ -3,6 +3,7 @@ package app
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -197,6 +198,50 @@ func TestHumanSize(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := humanSize(tt.size); got != tt.want {
 				t.Fatalf("humanSize(%d) = %q, want %q", tt.size, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestOpenCommandUsesPlatformHandler(t *testing.T) {
+	tests := []struct {
+		name       string
+		goos       string
+		path       string
+		wantBinary string
+		wantArg    string
+		wantErr    string
+	}{
+		{name: "macos", goos: "darwin", path: "/tmp/notes", wantBinary: "open", wantArg: filepath.Clean("/tmp/notes")},
+		{name: "linux", goos: "linux", path: "/tmp/notes", wantBinary: "xdg-open", wantArg: filepath.Clean("/tmp/notes")},
+		{name: "windows", goos: "windows", path: `C:\notes`, wantBinary: "explorer", wantArg: filepath.Clean(`C:\notes`)},
+		{name: "unsupported", goos: "plan9", path: "/tmp/notes", wantErr: "unsupported platform: plan9"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := openCommand(tt.goos, tt.path)
+			if tt.wantErr != "" {
+				if err == nil {
+					t.Fatalf("openCommand(%q, %q) error = nil, want %q", tt.goos, tt.path, tt.wantErr)
+				}
+				if err.Error() != tt.wantErr {
+					t.Fatalf("openCommand(%q, %q) error = %q, want %q", tt.goos, tt.path, err.Error(), tt.wantErr)
+				}
+				return
+			}
+
+			if err != nil {
+				t.Fatalf("openCommand(%q, %q) error = %v", tt.goos, tt.path, err)
+			}
+			if filepath.Base(got.Path) != tt.wantBinary {
+				t.Fatalf("filepath.Base(command.Path) = %q, want %q", filepath.Base(got.Path), tt.wantBinary)
+			}
+			if len(got.Args) != 2 {
+				t.Fatalf("len(command.Args) = %d, want 2", len(got.Args))
+			}
+			if got.Args[1] != tt.wantArg {
+				t.Fatalf("command.Args[1] = %q, want %q", got.Args[1], tt.wantArg)
 			}
 		})
 	}
@@ -400,6 +445,94 @@ func TestUpdateListDialogCanOpenSelectedNote(t *testing.T) {
 	}
 	if model.editor.Value() != "m" {
 		t.Fatalf("editor content = %q, want %q", model.editor.Value(), "m")
+	}
+}
+
+func TestHandleCommandFilesLaunchesNotesFolder(t *testing.T) {
+	tmpDir := t.TempDir()
+	original := openPathWithSystemApp
+	t.Cleanup(func() {
+		openPathWithSystemApp = original
+	})
+
+	var openedPath string
+	openPathWithSystemApp = func(path string) error {
+		openedPath = path
+		return nil
+	}
+
+	model := New(config.Config{NotesPath: tmpDir}, "", "test")
+	model.input.SetValue(":files")
+	model.syncLauncherState()
+
+	model = updateModel(t, model, tea.KeyMsg{Type: tea.KeyEnter})
+
+	if openedPath != tmpDir {
+		t.Fatalf("openedPath = %q, want %q", openedPath, tmpDir)
+	}
+	if model.input.Value() != "" {
+		t.Fatalf("input.Value() = %q, want empty string", model.input.Value())
+	}
+	if model.status != "Opened notes folder" {
+		t.Fatalf("status = %q, want %q", model.status, "Opened notes folder")
+	}
+	if model.isError {
+		t.Fatalf("isError = true, want false")
+	}
+}
+
+func TestHandleCommandFilesCreatesMissingNotesFolder(t *testing.T) {
+	baseDir := t.TempDir()
+	notesDir := filepath.Join(baseDir, "notes")
+	original := openPathWithSystemApp
+	t.Cleanup(func() {
+		openPathWithSystemApp = original
+	})
+
+	openPathWithSystemApp = func(path string) error {
+		if _, err := os.Stat(path); err != nil {
+			t.Fatalf("Stat(%q) error = %v, want created directory", path, err)
+		}
+		return nil
+	}
+
+	model := New(config.Config{NotesPath: notesDir}, "", "test")
+	model.input.SetValue(":files")
+	model.syncLauncherState()
+
+	model = updateModel(t, model, tea.KeyMsg{Type: tea.KeyEnter})
+
+	info, err := os.Stat(notesDir)
+	if err != nil {
+		t.Fatalf("Stat(%q) error = %v", notesDir, err)
+	}
+	if !info.IsDir() {
+		t.Fatalf("%q is not a directory", notesDir)
+	}
+}
+
+func TestHandleCommandFilesShowsLaunchError(t *testing.T) {
+	tmpDir := t.TempDir()
+	original := openPathWithSystemApp
+	t.Cleanup(func() {
+		openPathWithSystemApp = original
+	})
+
+	openPathWithSystemApp = func(path string) error {
+		return exec.ErrNotFound
+	}
+
+	model := New(config.Config{NotesPath: tmpDir}, "", "test")
+	model.input.SetValue(":files")
+	model.syncLauncherState()
+
+	model = updateModel(t, model, tea.KeyMsg{Type: tea.KeyEnter})
+
+	if !model.isError {
+		t.Fatalf("isError = false, want true")
+	}
+	if !strings.Contains(model.status, "Could not open notes dir") {
+		t.Fatalf("status = %q, want open-notes-dir error", model.status)
 	}
 }
 

@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"math"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"sort"
 	"strings"
 	"time"
@@ -134,8 +136,10 @@ func New(cfg config.Config, configPath string, version string) Model {
 }
 
 var invalidFileChars = regexp.MustCompile(`[^a-z0-9._-]+`)
+var openPathWithSystemApp = openPath
 var commands = []command{
 	{name: ":help", description: "Show available commands"},
+	{name: ":files", description: "Open the notes folder"},
 	{name: ":info", description: "Show app and path info"},
 	{name: ":list", description: "List existing notes"},
 	{name: ":quit", description: "Exit the app"},
@@ -430,6 +434,23 @@ func (m Model) handleCommand() (tea.Model, tea.Cmd) {
 	case ":list":
 		m.openListDialog()
 		return m, nil
+	case ":files":
+		if err := os.MkdirAll(m.config.NotesPath, 0o755); err != nil {
+			m.status = fmt.Sprintf("Could not prepare notes dir: %v", err)
+			m.isError = true
+			return m, nil
+		}
+		if err := openPathWithSystemApp(m.config.NotesPath); err != nil {
+			m.status = fmt.Sprintf("Could not open notes dir: %v", err)
+			m.isError = true
+			return m, nil
+		}
+		m.input.SetValue("")
+		m.input.Focus()
+		m.syncLauncherState()
+		m.status = "Opened notes folder"
+		m.isError = false
+		return m, nil
 	case ":quit":
 		return m, tea.Quit
 	default:
@@ -478,6 +499,7 @@ func helpDialog() string {
 		dialogTitleStyle.Render("Commands"),
 		"",
 		":help  Show this dialog",
+		":files Open the notes folder",
 		":info  Show app and path info",
 		":list  List existing notes",
 		":quit  Exit the app",
@@ -918,6 +940,34 @@ func (m Model) dialogVisibleCount() int {
 	}
 
 	return max(3, m.height-10)
+}
+
+func openPath(path string) error {
+	command, err := openCommand(runtime.GOOS, path)
+	if err != nil {
+		return err
+	}
+
+	if err := command.Start(); err != nil {
+		return err
+	}
+
+	return command.Process.Release()
+}
+
+func openCommand(goos string, path string) (*exec.Cmd, error) {
+	cleanPath := filepath.Clean(path)
+
+	switch goos {
+	case "darwin":
+		return exec.Command("open", cleanPath), nil
+	case "linux":
+		return exec.Command("xdg-open", cleanPath), nil
+	case "windows":
+		return exec.Command("explorer", cleanPath), nil
+	default:
+		return nil, fmt.Errorf("unsupported platform: %s", goos)
+	}
 }
 
 func (m Model) findNoteMatches(query string) []noteMatch {

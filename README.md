@@ -22,6 +22,7 @@
 - `:help` shows available commands
 - `:info` shows version and path information
 - `:list` shows all existing notes in a selectable dialog sorted by last update
+- `:files` opens the notes directory in the system file manager
 - `:quit` exits the app
 
 ## Paths
