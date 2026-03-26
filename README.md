@@ -38,3 +38,7 @@ The config file currently supports:
   "notes_path": "~/not"
 }
 ```
+
+## Disclaimer
+
+This project is developed using iterative LLM-assisted workflows, with incremental changes and continuous testing.
