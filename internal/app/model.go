@@ -115,6 +115,7 @@ func New(cfg config.Config, configPath string, version string) Model {
 	editor.Placeholder = "Start writing..."
 	editor.Prompt = ""
 	editor.ShowLineNumbers = false
+	editor.CharLimit = 0
 	editor.SetHeight(12)
 	editor.SetWidth(64)
 

@@ -290,6 +290,22 @@ func TestUpdateEnterOpensSelectedExistingNote(t *testing.T) {
 	}
 }
 
+func TestOpenEditorDoesNotTruncateLongNotes(t *testing.T) {
+	tmpDir := t.TempDir()
+	content := longNoteContent(420)
+	notePath := writeTestNote(t, tmpDir, "long.md", content)
+
+	model := New(config.Config{NotesPath: tmpDir}, "", "test")
+	model.openEditor(notePath, "long.md")
+
+	if model.editor.CharLimit != 0 {
+		t.Fatalf("editor.CharLimit = %d, want 0", model.editor.CharLimit)
+	}
+	if got := model.editor.Value(); got != content {
+		t.Fatalf("editor content length = %d, want %d", len(got), len(content))
+	}
+}
+
 func TestUpdateEscWhileEditingSavesAndClosesEditor(t *testing.T) {
 	tmpDir := t.TempDir()
 	notePath := filepath.Join(tmpDir, "draft.md")
@@ -390,4 +406,23 @@ func mustSetModTime(t *testing.T, path string, modTime time.Time) {
 	if err := os.Chtimes(path, modTime, modTime); err != nil {
 		t.Fatalf("Chtimes(%q) error = %v", path, err)
 	}
+}
+
+func longNoteContent(length int) string {
+	if length <= 0 {
+		return ""
+	}
+
+	const pattern = "I need to make this not grow so I will copy paste that "
+	var b []byte
+	for len(b) < length {
+		remaining := length - len(b)
+		if remaining >= len(pattern) {
+			b = append(b, pattern...)
+			continue
+		}
+		b = append(b, pattern[:remaining]...)
+	}
+
+	return string(b)
 }

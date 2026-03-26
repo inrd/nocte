@@ -7,6 +7,7 @@
 The project should evolve in small, reversible steps. Favor simple implementations that leave room for iteration over premature architecture or polished abstractions.
 Keep this file up to date on each iteration of the codebase so it remains a reliable snapshot of current behavior and expectations.
 Keep `README.md` updated on each iteration as user-facing behavior, setup, and workflow change.
+Keep `README.md` focused on meaningful user-facing capabilities and workflow. Avoid documenting low-level implementation details, bugfixes, or internal limits unless they change how a user should use the app.
 
 ## Current Direction
 
@@ -35,6 +36,7 @@ Keep `README.md` updated on each iteration as user-facing behavior, setup, and w
 - Pressing Enter on a new note name should create the file and immediately open an editor view for that note.
 - Pressing `Enter` without a selected note match should keep the create-new-note behavior.
 - The initial note editor is plain text only and saves when the editor closes.
+- The editor must support long notes without truncating content.
 - If saving on editor exit fails, the app should warn before discarding unsaved changes.
 - Pressing `Esc` in the editor should return to the main launcher input.
 - Filenames are sanitized before writing.
