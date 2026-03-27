@@ -10,7 +10,7 @@ import (
 	"github.com/inrd/nocte/internal/config"
 )
 
-const version = "0.5.0"
+const version = "0.6.0"
 
 func main() {
 	cfg, configPath, err := config.LoadOrCreate()
