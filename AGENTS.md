@@ -68,8 +68,10 @@ Use the Make targets instead of raw Go commands when practical:
 - `make test`
 - `make fmt`
 - `make tidy`
+- `make release VERSION=0.3.1`
 
 The repo uses workspace-local `GOCACHE` and `GOMODCACHE` through the `Makefile`. Keep that setup intact unless there is a clear reason to change it.
+Use `make release VERSION=...` for version bumps so the version update, test run, commit, and tag creation stay consistent. Add `PUSH=1` when the release flow should also push the current branch and tag to `origin`.
 
 ## Coding Guidelines
 

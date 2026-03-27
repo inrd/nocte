@@ -19,6 +19,12 @@ For example, in `~/.zshrc`:
 export PATH="$HOME/.local/bin:$PATH"
 ```
 
+## Development
+
+- Run `make test` before pushing changes
+- Use `make release VERSION=0.3.1` to bump the app version, run tests, create the release commit, and tag it locally
+- Add `PUSH=1` to also push the current branch and tag to `origin`
+
 ## What It Does
 
 - Create a new note from the main input

@@ -6,7 +6,7 @@ GOCACHE := $(CURDIR)/.gocache
 GOMODCACHE := $(CURDIR)/.gomodcache
 GOENV := GOCACHE=$(GOCACHE) GOMODCACHE=$(GOMODCACHE)
 
-.PHONY: run build install test fmt tidy clean
+.PHONY: run build install test fmt tidy clean release
 
 run:
 	$(GOENV) $(GO) run ./cmd/nocte
@@ -29,3 +29,7 @@ tidy:
 
 clean:
 	rm -f $(APP)
+
+release:
+	@test -n "$(VERSION)" || (echo "VERSION is required, for example: make release VERSION=0.3.1"; exit 1)
+	sh ./scripts/release.sh $(VERSION) $(if $(filter 1 true yes,$(PUSH)),--push,)
