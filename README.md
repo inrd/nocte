@@ -25,6 +25,7 @@ export PATH="$HOME/.local/bin:$PATH"
 - Fuzzy-search existing notes as you type
 - Browse all notes with `:list`
 - Edit notes in a plain text editor with an optional live Markdown preview for headings, lists, task lists, links, inline code, bold, italics, and strikethrough, including terminal image rendering through `chafa` when available
+- Export the current note from the editor to an HTML file in `~/nocte/html` or your configured notes directory equivalent, then open it in your default browser
 - Open note links from the editor with a keyboard shortcut
 - Delete the current note from the editor with an in-app confirmation dialog
 - Notes are saved on editor exit when content changed, and brand-new untouched empty notes are discarded
@@ -36,6 +37,7 @@ export PATH="$HOME/.local/bin:$PATH"
 - Press `Enter` on a selected match to open it
 - Press `Enter` without selecting a match to create a new note
 - Press `Ctrl+P` in the editor to toggle the live Markdown preview
+- Press `Ctrl+E` in the editor to render the current note to `html/<note>.html` under your notes directory and open it in your default browser
 - Add a Markdown image like `![alt](./image.png)` to preview local images beside the editor when `chafa` is installed
 - Press `Ctrl+L` in the editor to open a dialog of links in the current note, then press `Enter` to open one in your default browser
 - Press `Ctrl+D` in the editor to delete the current note after confirming, then return to the launcher

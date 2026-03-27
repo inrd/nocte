@@ -153,6 +153,12 @@ func (m Model) updateEditorKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	}
 
 	switch msg.String() {
+	case "ctrl+e":
+		if err := m.exportEditorHTML(); err != nil {
+			m.status = err.Error()
+			m.isError = true
+		}
+		return m, nil
 	case "ctrl+l":
 		m.openLinksDialog()
 		return m, nil

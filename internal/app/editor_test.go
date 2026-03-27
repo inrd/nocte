@@ -177,6 +177,57 @@ func TestUpdateCtrlPTogglesPreviewWhileEditing(t *testing.T) {
 	}
 }
 
+func TestUpdateCtrlERendersHTMLAndOpensIt(t *testing.T) {
+	tmpDir := t.TempDir()
+	notePath := writeTestNote(t, tmpDir, "draft.md", "# Before")
+	original := openPathWithSystemApp
+	t.Cleanup(func() {
+		openPathWithSystemApp = original
+	})
+
+	var openedPath string
+	openPathWithSystemApp = func(path string) error {
+		openedPath = path
+		return nil
+	}
+
+	model := New(config.Config{NotesPath: tmpDir}, "", "test")
+	model.width = 96
+	model.openEditor(notePath, "draft.md")
+	model.editor.SetValue("# After\n\n[Docs](https://example.com/docs)\n\n![Diagram](./diagram.png)")
+
+	model = updateModel(t, model, tea.KeyMsg{Type: tea.KeyCtrlE})
+
+	exportPath := filepath.Join(tmpDir, "html", "draft.html")
+	if openedPath != exportPath {
+		t.Fatalf("openedPath = %q, want %q", openedPath, exportPath)
+	}
+	if model.status != "Opened HTML export html/draft.html" {
+		t.Fatalf("status = %q, want %q", model.status, "Opened HTML export html/draft.html")
+	}
+	if !model.isEditing() {
+		t.Fatalf("model should stay in the editor after HTML export")
+	}
+
+	data, err := os.ReadFile(exportPath)
+	if err != nil {
+		t.Fatalf("ReadFile(%q) error = %v", exportPath, err)
+	}
+	rendered := string(data)
+	if !strings.Contains(rendered, "<h1>After</h1>") {
+		t.Fatalf("rendered html = %q, want heading", rendered)
+	}
+	if !strings.Contains(rendered, "<a href=\"https://example.com/docs\">Docs</a>") {
+		t.Fatalf("rendered html = %q, want link", rendered)
+	}
+	if !strings.Contains(rendered, "<img src=\"./diagram.png\" alt=\"Diagram\">") {
+		t.Fatalf("rendered html = %q, want image", rendered)
+	}
+	if !strings.Contains(rendered, "<base href=\"file://") {
+		t.Fatalf("rendered html = %q, want file base href", rendered)
+	}
+}
+
 func TestUpdateCtrlLOpensLinksDialogAndEnterOpensSelectedLink(t *testing.T) {
 	tmpDir := t.TempDir()
 	notePath := writeTestNote(t, tmpDir, "draft.md", "[Docs](https://example.com/docs)\nhttps://example.com/raw")
@@ -332,7 +383,7 @@ func TestEditorViewShowsMarkdownPreviewWhenVisible(t *testing.T) {
 	if !strings.Contains(view, "Preview (read-only)") {
 		t.Fatalf("editorView() missing preview label: %q", view)
 	}
-	if !strings.Contains(view, "Ctrl+P") || !strings.Contains(view, "Ctrl+L") || !strings.Contains(view, "Ctrl+D") || !strings.Contains(view, "Esc") || !strings.Contains(view, "Ctrl+C") {
+	if !strings.Contains(view, "Ctrl+P") || !strings.Contains(view, "Ctrl+E") || !strings.Contains(view, "Ctrl+L") || !strings.Contains(view, "Ctrl+D") || !strings.Contains(view, "Esc") || !strings.Contains(view, "Ctrl+C") {
 		t.Fatalf("editorView() missing preview shortcut help: %q", view)
 	}
 	if strings.Contains(view, "Plain text editor with live Markdown preview") {
@@ -351,6 +402,47 @@ func TestRenderMarkdownPreviewKeepsWrappedLinksIntact(t *testing.T) {
 	}
 	if strings.Contains(rendered, "](") {
 		t.Fatalf("renderMarkdownPreview() should not expose raw markdown link syntax after wrapping: %q", rendered)
+	}
+}
+
+func TestRenderMarkdownHTMLDocumentRendersMarkdown(t *testing.T) {
+	notePath := filepath.Join("/tmp", "notes", "draft.md")
+	rendered := renderMarkdownHTMLDocument("draft.md", notePath, "# Title\n\n- item\n- [x] done\n\n`code` and **bold** and [site](https://example.com)")
+
+	if !strings.Contains(rendered, "<title>draft</title>") {
+		t.Fatalf("renderMarkdownHTMLDocument() = %q, want title", rendered)
+	}
+	if !strings.Contains(rendered, "<h1>Title</h1>") {
+		t.Fatalf("renderMarkdownHTMLDocument() = %q, want heading", rendered)
+	}
+	if !strings.Contains(rendered, "<ul>") || !strings.Contains(rendered, "<li>item") {
+		t.Fatalf("renderMarkdownHTMLDocument() = %q, want list", rendered)
+	}
+	if !strings.Contains(rendered, "<input type=\"checkbox\" checked disabled> done") {
+		t.Fatalf("renderMarkdownHTMLDocument() = %q, want task list checkbox", rendered)
+	}
+	if !strings.Contains(rendered, "<code>code</code>") {
+		t.Fatalf("renderMarkdownHTMLDocument() = %q, want inline code", rendered)
+	}
+	if !strings.Contains(rendered, "<strong>bold</strong>") {
+		t.Fatalf("renderMarkdownHTMLDocument() = %q, want bold text", rendered)
+	}
+	if !strings.Contains(rendered, "<a href=\"https://example.com\">site</a>") {
+		t.Fatalf("renderMarkdownHTMLDocument() = %q, want link", rendered)
+	}
+	if !strings.Contains(rendered, "<base href=\"file:///tmp/notes/\">") {
+		t.Fatalf("renderMarkdownHTMLDocument() = %q, want base href", rendered)
+	}
+	if !strings.Contains(rendered, "pre code{display:block;padding:0;border-radius:0;background:transparent;color:inherit;}") {
+		t.Fatalf("renderMarkdownHTMLDocument() = %q, want block code style reset", rendered)
+	}
+}
+
+func TestRenderMarkdownHTMLDocumentKeepsPlainExclamationText(t *testing.T) {
+	rendered := renderMarkdownHTMLDocument("draft.md", "", "Heads up! Plain text stays plain.")
+
+	if !strings.Contains(rendered, "Heads up! Plain text stays plain.") {
+		t.Fatalf("renderMarkdownHTMLDocument() = %q, want plain exclamation text", rendered)
 	}
 }
 
