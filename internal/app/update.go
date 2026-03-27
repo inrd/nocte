@@ -173,6 +173,9 @@ func (m Model) updateEditorKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.isError = true
 		}
 		return m, nil
+	case "ctrl+t":
+		m.toggleEditorTask()
+		return m, nil
 	case "ctrl+l":
 		m.openLinksDialog()
 		return m, nil

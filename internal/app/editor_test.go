@@ -177,6 +177,72 @@ func TestUpdateCtrlPTogglesPreviewWhileEditing(t *testing.T) {
 	}
 }
 
+func TestUpdateCtrlTTurnsPlainLineIntoOpenTask(t *testing.T) {
+	tmpDir := t.TempDir()
+	notePath := writeTestNote(t, tmpDir, "draft.md", "alpha\nplain text\nomega")
+
+	model := New(config.Config{NotesPath: tmpDir}, "", "test")
+	model.openEditor(notePath, "draft.md")
+	model.jumpEditorTo(1, 3)
+
+	model = updateModel(t, model, tea.KeyMsg{Type: tea.KeyCtrlT})
+
+	if got := model.editor.Value(); got != "alpha\n- [ ] plain text\nomega" {
+		t.Fatalf("editor.Value() = %q, want %q", got, "alpha\n- [ ] plain text\nomega")
+	}
+	if got := model.editor.Line(); got != 1 {
+		t.Fatalf("editor.Line() = %d, want %d", got, 1)
+	}
+	if got := model.editor.LineInfo().CharOffset; got != 9 {
+		t.Fatalf("editor.LineInfo().CharOffset = %d, want %d", got, 9)
+	}
+}
+
+func TestUpdateCtrlTTogglesExistingTaskState(t *testing.T) {
+	tmpDir := t.TempDir()
+	notePath := writeTestNote(t, tmpDir, "draft.md", "- [ ] ship it")
+
+	model := New(config.Config{NotesPath: tmpDir}, "", "test")
+	model.openEditor(notePath, "draft.md")
+	model.jumpEditorTo(0, 7)
+
+	model = updateModel(t, model, tea.KeyMsg{Type: tea.KeyCtrlT})
+
+	if got := model.editor.Value(); got != "- [x] ship it" {
+		t.Fatalf("editor.Value() after first Ctrl+T = %q, want %q", got, "- [x] ship it")
+	}
+	if got := model.editor.LineInfo().CharOffset; got != 7 {
+		t.Fatalf("editor.LineInfo().CharOffset after first Ctrl+T = %d, want %d", got, 7)
+	}
+
+	model = updateModel(t, model, tea.KeyMsg{Type: tea.KeyCtrlT})
+
+	if got := model.editor.Value(); got != "- [ ] ship it" {
+		t.Fatalf("editor.Value() after second Ctrl+T = %q, want %q", got, "- [ ] ship it")
+	}
+	if got := model.editor.LineInfo().CharOffset; got != 7 {
+		t.Fatalf("editor.LineInfo().CharOffset after second Ctrl+T = %d, want %d", got, 7)
+	}
+}
+
+func TestUpdateCtrlTTurnsBulletIntoOpenTask(t *testing.T) {
+	tmpDir := t.TempDir()
+	notePath := writeTestNote(t, tmpDir, "draft.md", "  * follow up")
+
+	model := New(config.Config{NotesPath: tmpDir}, "", "test")
+	model.openEditor(notePath, "draft.md")
+	model.jumpEditorTo(0, 4)
+
+	model = updateModel(t, model, tea.KeyMsg{Type: tea.KeyCtrlT})
+
+	if got := model.editor.Value(); got != "  * [ ] follow up" {
+		t.Fatalf("editor.Value() = %q, want %q", got, "  * [ ] follow up")
+	}
+	if got := model.editor.LineInfo().CharOffset; got != 8 {
+		t.Fatalf("editor.LineInfo().CharOffset = %d, want %d", got, 8)
+	}
+}
+
 func TestUpdateCtrlERendersHTMLAndOpensIt(t *testing.T) {
 	tmpDir := t.TempDir()
 	notePath := writeTestNote(t, tmpDir, "draft.md", "# Before")
@@ -383,7 +449,7 @@ func TestEditorViewShowsMarkdownPreviewWhenVisible(t *testing.T) {
 	if !strings.Contains(view, "Preview (read-only)") {
 		t.Fatalf("editorView() missing preview label: %q", view)
 	}
-	if !strings.Contains(view, "Ctrl+P") || !strings.Contains(view, "Ctrl+E") || !strings.Contains(view, "Ctrl+L") || !strings.Contains(view, "Ctrl+D") || !strings.Contains(view, "Esc") || !strings.Contains(view, "Ctrl+C") {
+	if !strings.Contains(view, "Ctrl+P") || !strings.Contains(view, "Ctrl+T") || !strings.Contains(view, "Ctrl+E") || !strings.Contains(view, "Ctrl+L") || !strings.Contains(view, "Ctrl+D") || !strings.Contains(view, "Esc") || !strings.Contains(view, "Ctrl+C") {
 		t.Fatalf("editorView() missing preview shortcut help: %q", view)
 	}
 	if strings.Contains(view, "Plain text editor with live Markdown preview") {

@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
+	"unicode"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -236,4 +238,56 @@ func (m *Model) jumpEditorTo(line int, column int) {
 	}
 
 	m.editor.SetCursor(column)
+}
+
+func (m *Model) toggleEditorTask() {
+	lines := strings.Split(m.editor.Value(), "\n")
+	line := m.editor.Line()
+	if line < 0 || line >= len(lines) {
+		return
+	}
+
+	column := m.editor.LineInfo().CharOffset
+	lines[line], column = toggleTaskLine(lines[line], column)
+	m.editor.SetValue(strings.Join(lines, "\n"))
+	m.jumpEditorTo(line, column)
+}
+
+func toggleTaskLine(line string, column int) (string, int) {
+	trimmed := strings.TrimLeftFunc(line, unicode.IsSpace)
+	indent := line[:len(line)-len(trimmed)]
+
+	oldPrefix := indent
+	newPrefix := indent + "- [ ] "
+	updated := newPrefix + trimmed
+
+	switch {
+	case isTaskListLine(line):
+		oldPrefix = indent + trimmed[:6]
+		marker := "[x]"
+		if trimmed[3] == 'x' || trimmed[3] == 'X' {
+			marker = "[ ]"
+		}
+		newPrefix = indent + string(trimmed[0]) + " " + marker + " "
+		updated = newPrefix + trimmed[6:]
+	case isBulletLine(line):
+		oldPrefix = indent + trimmed[:2]
+		newPrefix = indent + string(trimmed[0]) + " [ ] "
+		updated = newPrefix + trimmed[2:]
+	}
+
+	return updated, adjustTaskToggleColumn(column, len([]rune(oldPrefix)), len([]rune(newPrefix)))
+}
+
+func adjustTaskToggleColumn(column int, oldPrefixLen int, newPrefixLen int) int {
+	if column < 0 {
+		return 0
+	}
+	if oldPrefixLen == newPrefixLen {
+		return column
+	}
+	if column <= oldPrefixLen {
+		return newPrefixLen
+	}
+	return column + (newPrefixLen - oldPrefixLen)
 }

@@ -47,6 +47,7 @@ Keep `README.md` focused on meaningful user-facing capabilities and workflow. Av
 - Leaving a newly created note empty and exiting the editor should delete that note instead of saving an empty file.
 - The initial note editor is plain text only, saves on close when content changed, and otherwise closes without rewriting the file.
 - The editor can show a toggleable live Markdown preview, controlled by keyboard shortcut and documented below the editor, including headings, links, inline code, bold, italics, strikethrough, task lists, and nested Markdown list indentation.
+- Pressing `Ctrl+T` in the editor should toggle the current line between checked and unchecked Markdown task states, and should turn a non-task line into an open task.
 - Pressing `Ctrl+E` in the editor should render the current note to an HTML file inside an `html` subdirectory of the main notes directory and open that rendered file in the default web browser.
 - The HTML export should stay broadly aligned with the editor's Markdown preview for the currently supported Markdown subset, but it does not need to behave like a full publishing-grade Markdown renderer.
 - Markdown image lines like `![alt](./image.png)` should render local image previews through `chafa` when it is available, and otherwise fall back to readable image label/path text.
