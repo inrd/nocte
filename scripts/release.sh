@@ -33,6 +33,23 @@ done
 
 repo_root=$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)
 main_file="$repo_root/cmd/nocte/main.go"
+tmp_file=''
+backup_file=''
+release_complete=0
+
+cleanup() {
+	if [ "$release_complete" -ne 1 ] && [ -n "$backup_file" ] && [ -f "$backup_file" ]; then
+		mv "$backup_file" "$main_file"
+	fi
+
+	rm -f "$tmp_file"
+
+	if [ -n "$backup_file" ] && [ -f "$backup_file" ]; then
+		rm -f "$backup_file"
+	fi
+}
+
+trap cleanup EXIT INT TERM HUP
 
 cd "$repo_root"
 
@@ -59,7 +76,8 @@ if git rev-parse -q --verify "refs/tags/v$version" >/dev/null 2>&1; then
 fi
 
 tmp_file=$(mktemp "$repo_root/.release-main.go.XXXXXX")
-trap 'rm -f "$tmp_file"' EXIT INT TERM HUP
+backup_file=$(mktemp "$repo_root/.release-main.go.backup.XXXXXX")
+cp "$main_file" "$backup_file"
 
 awk -v version="$version" '
 BEGIN {
@@ -81,13 +99,13 @@ END {
 ' "$main_file" >"$tmp_file"
 
 mv "$tmp_file" "$main_file"
-trap - EXIT INT TERM HUP
 
 make test
 
 git add "$main_file"
 git commit -m "Bump version to $version"
 git tag "v$version"
+release_complete=1
 
 if [ "$push" -eq 1 ]; then
 	current_branch=$(git branch --show-current)
@@ -96,8 +114,7 @@ if [ "$push" -eq 1 ]; then
 		exit 1
 	fi
 
-	git push origin "$current_branch"
-	git push origin "v$version"
+	git push origin "$current_branch" "refs/tags/v$version"
 fi
 
 echo "release: created commit and tag v$version"
