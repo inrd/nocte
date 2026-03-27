@@ -2,3 +2,4 @@
 .gomodcache/
 .DS_Store
 /nocte
+/scripts/vhs/*.gif

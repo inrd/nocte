@@ -6,7 +6,7 @@ GOCACHE := $(CURDIR)/.gocache
 GOMODCACHE := $(CURDIR)/.gomodcache
 GOENV := GOCACHE=$(GOCACHE) GOMODCACHE=$(GOMODCACHE)
 
-.PHONY: run build install test fmt tidy clean release
+.PHONY: run build install test fmt tidy clean demo-prepare demo-gif release
 
 run:
 	$(GOENV) $(GO) run ./cmd/nocte
@@ -29,6 +29,13 @@ tidy:
 
 clean:
 	rm -f $(APP)
+
+demo-prepare:
+	sh ./scripts/vhs/prepare-demo-home.sh
+
+demo-gif: build demo-prepare
+	mkdir -p docs/demo
+	vhs scripts/vhs/editor-demo.tape
 
 release:
 	@test -n "$(VERSION)" || (echo "VERSION is required, for example: make release VERSION=0.3.1"; exit 1)

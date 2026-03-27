@@ -2,6 +2,8 @@
 
 `nocte` is a small keyboard-first terminal note app that stores notes as plain Markdown files on disk.
 
+![nocte demo](docs/demo/editor-demo.gif)
+
 ## Requirements
 
 - Go
@@ -24,6 +26,7 @@ export PATH="$HOME/.local/bin:$PATH"
 - Run `make test` before pushing changes
 - Use `make release VERSION=0.3.1` to bump the app version, run tests, create the release commit, and tag it locally
 - Add `PUSH=1` to also push the current branch and tag to `origin`
+- Run `make demo-gif` to rebuild `docs/demo/editor-demo.gif` from checked-in VHS fixtures and the current UI
 
 ## What It Does
 
