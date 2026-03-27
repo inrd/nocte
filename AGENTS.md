@@ -31,14 +31,18 @@ Keep `README.md` focused on meaningful user-facing capabilities and workflow. Av
 
 - New notes are created from the main input.
 - Typing a note name in the main input should show a fuzzy note-search palette for existing notes.
+- Typing `/` followed by a query in the main input should show a selectable full-text search palette with one row per match, including the note name and a dimmed multi-line snippet around the match.
 - Running `:list` should show all existing notes in a dialog sorted by last updated, with the updated date/time in green alongside word count and file size metadata.
 - Running `:export-all` should rebuild the `html` subdirectory of the main notes directory and render every Markdown note there as HTML without opening a browser.
 - Running `:files` should open the notes directory in the system file manager and create the directory first when it does not exist yet.
 - Typing after `:` should keep command-name prefix matches ahead of looser fuzzy or description-only command matches in the command palette.
 - Existing note matches should not be selected by default.
+- Existing full-text search matches should not be selected by default.
 - Pressing `Up` or `Down` should move through note matches, and pressing `Enter` with a selected match should open that note in the editor.
+- Pressing `Up` or `Down` should move through full-text search matches, and pressing `Enter` with a selected match should open that note in the editor at the matching line.
 - In the `:list` dialog, `Up` and `Down` should move through the full note list, scrolling when needed, and `Enter` should open the selected note in the editor.
 - Pressing Enter on a new note name should create the file and immediately open an editor view for that note.
+- Pressing `Enter` in `/` search mode without a selected match should not create a new note.
 - Pressing `Enter` without a selected note match should keep the create-new-note behavior.
 - Leaving a newly created note empty and exiting the editor should delete that note instead of saving an empty file.
 - The initial note editor is plain text only, saves on close when content changed, and otherwise closes without rewriting the file.

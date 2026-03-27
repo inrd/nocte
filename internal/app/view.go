@@ -1,6 +1,8 @@
 package app
 
 import (
+	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
@@ -12,7 +14,7 @@ func (m Model) View() string {
 	}
 
 	inputBox := inputStyle.Render(m.input.View())
-	help := helpStyle.Render("Type a note name and press Enter. Type :help for commands. Use :quit or Esc to quit.")
+	help := helpStyle.Render("Type a note name and press Enter. Type / to search note contents. Type :help for commands. Use :quit or Esc to quit.")
 
 	status := ""
 	switch {
@@ -26,6 +28,8 @@ func (m Model) View() string {
 	parts := []string{inputBox}
 	if m.isCommandMode() {
 		parts = append(parts, m.commandPaletteView())
+	} else if m.shouldShowSearchPalette() {
+		parts = append(parts, m.searchPaletteView())
 	} else if m.shouldShowNotePalette() {
 		parts = append(parts, m.notePaletteView())
 	}
@@ -195,4 +199,57 @@ func (m Model) notePaletteView() string {
 	}
 
 	return commandPaletteStyle.Render(strings.Join(lines, "\n"))
+}
+
+func (m Model) searchPaletteView() string {
+	style := m.searchPaletteStyle()
+	query := m.searchQuery()
+	if query == "" {
+		return style.Render(helpStyle.Render("Type after / to search inside your notes"))
+	}
+	if len(m.searchMatches) == 0 {
+		return style.Render(helpStyle.Render("No matching note content"))
+	}
+
+	start, end := m.searchVisibleRange()
+	rows := make([]string, 0, end-start+1)
+	contentWidth := style.GetWidth() - style.GetHorizontalFrameSize()
+	for i := start; i < end; i++ {
+		match := m.searchMatches[i]
+		row := m.searchPaletteRow(match, contentWidth)
+		if i == m.searchIndex {
+			rows = append(rows, commandSelectedStyle.Render(row))
+			continue
+		}
+		rows = append(rows, row)
+	}
+	if len(m.searchMatches) > 1 {
+		rows = append(rows, helpStyle.Render(fmt.Sprintf("Showing %d-%d of %d", start+1, end, len(m.searchMatches))))
+	}
+
+	return style.Render(strings.Join(rows, "\n"))
+}
+
+func (m Model) searchPaletteStyle() lipgloss.Style {
+	width := defaultSearchPaletteWidth
+	if m.width > 0 {
+		width = min(maxSearchPaletteWidth, max(56, m.width-8))
+	}
+
+	return commandPaletteStyle.Copy().Width(width)
+}
+
+func (m Model) searchPaletteRow(match searchMatch, contentWidth int) string {
+	title := searchNameStyle.Render(matchHeader(match, contentWidth))
+	snippetWidth := max(16, contentWidth)
+	lines := []string{title}
+	for _, snippetLine := range match.snippetLines {
+		lines = append(lines, searchSnippetStyle.Render(truncateText(snippetLine, snippetWidth)))
+	}
+
+	return strings.Join(lines, "\n")
+}
+
+func matchHeader(match searchMatch, width int) string {
+	return truncateText(match.name+":"+strconv.Itoa(match.lineNumber), width)
 }

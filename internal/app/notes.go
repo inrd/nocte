@@ -27,7 +27,7 @@ func sanitizeFilename(input string) (string, error) {
 }
 
 func (m Model) shouldShowNotePalette() bool {
-	return !m.isCommandMode() && strings.TrimSpace(m.input.Value()) != ""
+	return !m.isCommandMode() && !m.isSearchMode() && strings.TrimSpace(m.input.Value()) != ""
 }
 
 func (m Model) hasNotePalette() bool {
@@ -39,12 +39,28 @@ func (m *Model) syncLauncherState() {
 		m.syncCommandSelection()
 		m.noteMatches = nil
 		m.noteIndex = -1
+		m.searchMatches = nil
+		m.searchIndex = -1
+		m.searchOffset = 0
+		return
+	}
+
+	if m.isSearchMode() {
+		m.commandIndex = 0
+		m.noteMatches = nil
+		m.noteIndex = -1
+		m.searchMatches = m.findSearchMatches(m.searchQuery())
+		m.searchIndex = -1
+		m.searchOffset = 0
 		return
 	}
 
 	m.commandIndex = 0
 	m.noteMatches = m.findNoteMatches(strings.TrimSpace(m.input.Value()))
 	m.noteIndex = -1
+	m.searchMatches = nil
+	m.searchIndex = -1
+	m.searchOffset = 0
 }
 
 func (m *Model) moveNoteSelection(delta int) {

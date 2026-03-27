@@ -15,15 +15,19 @@ import (
 const largeNoteWarningThreshold int64 = 10 * 1024 * 1024
 
 const (
-	defaultDialogWidth     = 64
-	defaultListDialogWidth = 84
-	maxListDialogWidth     = 100
-	listUpdatedAtWidth     = 17
-	listMetaWidth          = 20
-	listColumnGap          = 2
-	editorPaneGap          = 2
-	minEditorPaneWidth     = 24
-	minPreviewPaneWidth    = 24
+	defaultDialogWidth        = 64
+	defaultListDialogWidth    = 84
+	defaultSearchPaletteWidth = 72
+	maxListDialogWidth        = 100
+	maxSearchPaletteWidth     = 100
+	listUpdatedAtWidth        = 17
+	listMetaWidth             = 20
+	listColumnGap             = 2
+	editorPaneGap             = 2
+	minEditorPaneWidth        = 24
+	minPreviewPaneWidth       = 24
+	searchResultLimit         = 50
+	searchSnippetContextLines = 1
 )
 
 var (
@@ -69,6 +73,12 @@ var (
 	listNameStyle = lipgloss.NewStyle()
 
 	listUpdatedStyle = lipgloss.NewStyle()
+
+	searchNameStyle = lipgloss.NewStyle().
+			Bold(true)
+
+	searchSnippetStyle = lipgloss.NewStyle().
+				Foreground(lipgloss.Color("8"))
 
 	linkLabelStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("12")).
@@ -139,7 +149,10 @@ type Model struct {
 	activeDialog   string
 	commandIndex   int
 	noteIndex      int
+	searchIndex    int
+	searchOffset   int
 	noteMatches    []noteMatch
+	searchMatches  []searchMatch
 	dialogNotes    []noteMatch
 	dialogLinks    []noteLink
 	dialogIndex    int
@@ -171,9 +184,17 @@ type noteLink struct {
 	url   string
 }
 
+type searchMatch struct {
+	name         string
+	path         string
+	lineNumber   int
+	column       int
+	snippetLines []string
+}
+
 func New(cfg config.Config, configPath string, version string) Model {
 	input := textinput.New()
-	input.Placeholder = "Search or create a note..."
+	input.Placeholder = "Search, /search contents, or create a note..."
 	input.Prompt = ""
 	input.Focus()
 	input.Width = 48
@@ -190,6 +211,8 @@ func New(cfg config.Config, configPath string, version string) Model {
 		input:          input,
 		editor:         editor,
 		noteIndex:      -1,
+		searchIndex:    -1,
+		searchOffset:   0,
 		dialogIndex:    -1,
 		dialogOffset:   0,
 		config:         cfg,

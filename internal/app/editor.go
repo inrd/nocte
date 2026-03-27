@@ -33,7 +33,9 @@ func (m *Model) openEditor(path string, name string) {
 	m.activeDialog = ""
 	m.commandIndex = 0
 	m.noteIndex = -1
+	m.searchIndex = -1
 	m.noteMatches = nil
+	m.searchMatches = nil
 	m.dialogNotes = nil
 	m.dialogIndex = -1
 	m.dialogOffset = 0
@@ -205,4 +207,33 @@ func (m *Model) openExistingNote(note noteMatch) error {
 	}
 
 	return nil
+}
+
+func (m *Model) openSearchMatch(match searchMatch) error {
+	m.openEditor(match.path, match.name)
+	if m.isError {
+		return errors.New(m.status)
+	}
+
+	m.jumpEditorTo(match.lineNumber-1, match.column)
+	m.status = fmt.Sprintf("Editing %s at line %d", match.name, match.lineNumber)
+	return nil
+}
+
+func (m *Model) jumpEditorTo(line int, column int) {
+	if line < 0 {
+		line = 0
+	}
+
+	m.editor, _ = m.editor.Update(tea.KeyMsg{Type: tea.KeyCtrlHome})
+	for m.editor.Line() < line {
+		m.editor.CursorEnd()
+		previousLine := m.editor.Line()
+		m.editor, _ = m.editor.Update(tea.KeyMsg{Type: tea.KeyDown})
+		if m.editor.Line() == previousLine {
+			break
+		}
+	}
+
+	m.editor.SetCursor(column)
 }

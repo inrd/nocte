@@ -17,6 +17,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.activeDialog == "list" || m.activeDialog == "links" {
 			m.syncDialogOffset()
 		}
+		if m.isSearchMode() {
+			m.syncSearchOffset()
+		}
 		return m, nil
 	case tea.KeyMsg:
 		return m.updateKey(msg)
@@ -48,6 +51,10 @@ func (m Model) updateKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.moveCommandSelection(-1)
 			return m, nil
 		}
+		if m.isSearchMode() {
+			m.moveSearchSelection(-1)
+			return m, nil
+		}
 		if m.hasNotePalette() {
 			m.moveNoteSelection(-1)
 			return m, nil
@@ -57,6 +64,10 @@ func (m Model) updateKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.moveCommandSelection(1)
 			return m, nil
 		}
+		if m.isSearchMode() {
+			m.moveSearchSelection(1)
+			return m, nil
+		}
 		if m.hasNotePalette() {
 			m.moveNoteSelection(1)
 			return m, nil
@@ -64,6 +75,9 @@ func (m Model) updateKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "enter":
 		if m.isCommandMode() {
 			return m.handleCommand()
+		}
+		if m.isSearchMode() {
+			return m.handleSearchResult()
 		}
 		if m.noteIndex >= 0 && m.noteIndex < len(m.noteMatches) {
 			if err := m.openExistingNote(m.noteMatches[m.noteIndex]); err != nil {
