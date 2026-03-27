@@ -50,6 +50,7 @@ export PATH="$HOME/.local/bin:$PATH"
 - Press `Enter` on a selected match to open it
 - Press `Enter` on a selected `/` search result to open the note at the matching line
 - Press `Enter` without selecting a match to create a new note
+- Press `Ctrl+H` in the editor to open a dialog listing all editor shortcuts
 - Press `Ctrl+P` in the editor to toggle the live Markdown preview
 - Press `Ctrl+T` in the editor to toggle the current line between an open and checked Markdown task, or turn a non-task line into an open task
 - Press `Ctrl+E` in the editor to render the current note to `html/<note>.html` under your notes directory and open it in your default browser

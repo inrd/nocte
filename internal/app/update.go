@@ -126,6 +126,15 @@ func (m Model) updateEditorKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
+	if m.activeDialog == "editor-help" {
+		switch msg.String() {
+		case "ctrl+h", "enter", "esc":
+			m.closeDialog()
+			return m, nil
+		}
+		return m, nil
+	}
+
 	if m.activeDialog == "save-error" {
 		switch msg.String() {
 		case "ctrl+c", "enter":
@@ -185,6 +194,11 @@ func (m Model) updateEditorKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case "ctrl+d":
 		m.activeDialog = "delete-confirm"
+		m.status = ""
+		m.isError = false
+		return m, nil
+	case "ctrl+h":
+		m.activeDialog = "editor-help"
 		m.status = ""
 		m.isError = false
 		return m, nil

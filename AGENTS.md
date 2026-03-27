@@ -54,10 +54,11 @@ Keep `README.md` focused on meaningful user-facing capabilities and workflow. Av
 - Pressing `Ctrl+E` in the editor should render the current note to an HTML file inside an `html` subdirectory of the main notes directory and open that rendered file in the default web browser.
 - The HTML export should stay broadly aligned with the editor's Markdown preview for the currently supported Markdown subset, but it does not need to behave like a full publishing-grade Markdown renderer.
 - Markdown image lines like `![alt](./image.png)` should render local image previews through `chafa` when it is available, and otherwise fall back to readable image label/path text.
+- Pressing `Ctrl+H` in the editor should open a help dialog listing all editor shortcuts.
 - Pressing `Ctrl+L` in the editor should open a dialog listing links found in the current note, with visually distinct labels and URLs, and pressing `Enter` on a selected link should open it in the default web browser.
 - Pressing `Ctrl+D` in the editor should open a confirmation alert for deleting the current note, prevent terminal EOF handling, and on confirm delete the note and return to the launcher.
 - The editor must support long notes without truncating content.
-- The editor footer should show the current note size and warn when a very large note may slow editing or saving.
+- The editor footer should keep editor exit shortcuts visible, point to `Ctrl+H` for the full shortcut list, and show the current note size with a warning when a very large note may slow editing or saving.
 - If saving on editor exit fails, the app should warn before discarding unsaved changes.
 - Pressing `Esc` in the editor should return to the main launcher input.
 - Filenames are sanitized before writing.

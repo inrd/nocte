@@ -69,44 +69,15 @@ func (m Model) editorView() string {
 		editorBox = lipgloss.JoinHorizontal(lipgloss.Top, editorBox, strings.Repeat(" ", editorPaneGap), previewBox)
 	}
 
-	helpText := lipgloss.JoinHorizontal(
+	help := lipgloss.JoinHorizontal(
 		lipgloss.Left,
-		keyHintStyle.Render("Ctrl+P"),
-		helpStyle.Render(" preview  "),
-		keyHintStyle.Render("Ctrl+T"),
-		helpStyle.Render(" toggle task  "),
-		keyHintStyle.Render("Ctrl+E"),
-		helpStyle.Render(" export HTML  "),
-		keyHintStyle.Render("Ctrl+L"),
-		helpStyle.Render(" links  "),
-		keyHintStyle.Render("Ctrl+D"),
-		helpStyle.Render(" delete  "),
 		keyHintStyle.Render("Esc"),
 		helpStyle.Render(" save & close  "),
 		keyHintStyle.Render("Ctrl+C"),
-		helpStyle.Render(" save & quit"),
+		helpStyle.Render(" save & quit  "),
+		keyHintStyle.Render("Ctrl+H"),
+		helpStyle.Render(" help"),
 	)
-	if !m.previewVisible() && m.previewEnabled {
-		helpText = lipgloss.JoinHorizontal(
-			lipgloss.Left,
-			keyHintStyle.Render("Ctrl+P"),
-			helpStyle.Render(" preview  "),
-			keyHintStyle.Render("Ctrl+T"),
-			helpStyle.Render(" toggle task  "),
-			keyHintStyle.Render("Ctrl+E"),
-			helpStyle.Render(" export HTML  "),
-			keyHintStyle.Render("Ctrl+L"),
-			helpStyle.Render(" links  "),
-			keyHintStyle.Render("Ctrl+D"),
-			helpStyle.Render(" delete  "),
-			keyHintStyle.Render("Esc"),
-			helpStyle.Render(" save & close  "),
-			keyHintStyle.Render("Ctrl+C"),
-			helpStyle.Render(" save & quit  "),
-			helpStyle.Render("(preview hidden on narrow terminals)"),
-		)
-	}
-	help := helpText
 	statusLine := m.editorStatusLine()
 	warningLine := m.editorWarningLine()
 

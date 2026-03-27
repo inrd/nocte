@@ -11,6 +11,8 @@ func (m Model) dialogView() string {
 	switch m.activeDialog {
 	case "help":
 		return helpDialog()
+	case "editor-help":
+		return editorHelpDialog()
 	case "info":
 		return infoDialog(m.version, m.configPath, m.config.NotesPath)
 	case "list":
@@ -42,6 +44,30 @@ func helpDialog() string {
 		":quit  Exit the app",
 		"",
 		helpStyle.Render("Press Esc or Enter to close."),
+	)
+
+	return dialogStyle.Render(body)
+}
+
+func editorHelpDialog() string {
+	rows := []string{
+		lipgloss.JoinHorizontal(lipgloss.Left, keyHintStyle.Render("Esc"), helpStyle.Render("     Save and close the editor")),
+		lipgloss.JoinHorizontal(lipgloss.Left, keyHintStyle.Render("Ctrl+C"), helpStyle.Render("  Save and quit the app")),
+		lipgloss.JoinHorizontal(lipgloss.Left, keyHintStyle.Render("Ctrl+H"), helpStyle.Render("  Show this help dialog")),
+		lipgloss.JoinHorizontal(lipgloss.Left, keyHintStyle.Render("Ctrl+P"), helpStyle.Render("  Toggle the Markdown preview")),
+		lipgloss.JoinHorizontal(lipgloss.Left, keyHintStyle.Render("Ctrl+T"), helpStyle.Render("  Toggle the current line as a task")),
+		lipgloss.JoinHorizontal(lipgloss.Left, keyHintStyle.Render("Ctrl+E"), helpStyle.Render("  Export the current note to HTML")),
+		lipgloss.JoinHorizontal(lipgloss.Left, keyHintStyle.Render("Ctrl+L"), helpStyle.Render("  List links in the current note")),
+		lipgloss.JoinHorizontal(lipgloss.Left, keyHintStyle.Render("Ctrl+D"), helpStyle.Render("  Delete the current note")),
+	}
+
+	body := lipgloss.JoinVertical(
+		lipgloss.Left,
+		dialogTitleStyle.Render("Editor Shortcuts"),
+		"",
+		lipgloss.JoinVertical(lipgloss.Left, rows...),
+		"",
+		helpStyle.Render("Press Esc, Enter, or Ctrl+H to close."),
 	)
 
 	return dialogStyle.Render(body)

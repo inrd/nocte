@@ -485,11 +485,44 @@ func TestEditorViewShowsMarkdownPreviewWhenVisible(t *testing.T) {
 	if !strings.Contains(view, "Preview (read-only)") {
 		t.Fatalf("editorView() missing preview label: %q", view)
 	}
-	if !strings.Contains(view, "Ctrl+P") || !strings.Contains(view, "Ctrl+T") || !strings.Contains(view, "Ctrl+E") || !strings.Contains(view, "Ctrl+L") || !strings.Contains(view, "Ctrl+D") || !strings.Contains(view, "Esc") || !strings.Contains(view, "Ctrl+C") {
-		t.Fatalf("editorView() missing preview shortcut help: %q", view)
+	if !strings.Contains(view, "Esc") || !strings.Contains(view, "Ctrl+C") || !strings.Contains(view, "Ctrl+H") {
+		t.Fatalf("editorView() missing compact shortcut help: %q", view)
+	}
+	if strings.Contains(view, "Ctrl+P") || strings.Contains(view, "Ctrl+T") || strings.Contains(view, "Ctrl+E") || strings.Contains(view, "Ctrl+L") || strings.Contains(view, "Ctrl+D") {
+		t.Fatalf("editorView() should keep non-exit shortcuts in the help dialog only: %q", view)
 	}
 	if strings.Contains(view, "Plain text editor with live Markdown preview") {
 		t.Fatalf("editorView() help should only show shortcuts: %q", view)
+	}
+}
+
+func TestCtrlHOpensAndClosesEditorHelpDialog(t *testing.T) {
+	tmpDir := t.TempDir()
+	notePath := writeTestNote(t, tmpDir, "draft.md", "hello")
+
+	model := New(config.Config{NotesPath: tmpDir}, "", "test")
+	model.openEditor(notePath, "draft.md")
+
+	model = updateModel(t, model, tea.KeyMsg{Type: tea.KeyCtrlH})
+
+	if model.activeDialog != "editor-help" {
+		t.Fatalf("activeDialog after Ctrl+H = %q, want editor-help", model.activeDialog)
+	}
+
+	dialog := model.dialogView()
+	for _, shortcut := range []string{"Esc", "Ctrl+C", "Ctrl+H", "Ctrl+P", "Ctrl+T", "Ctrl+E", "Ctrl+L", "Ctrl+D"} {
+		if !strings.Contains(dialog, shortcut) {
+			t.Fatalf("editorHelpDialog() missing %q: %q", shortcut, dialog)
+		}
+	}
+	if strings.Contains(dialog, "Tab") {
+		t.Fatalf("editorHelpDialog() should not include Tab: %q", dialog)
+	}
+
+	model = updateModel(t, model, tea.KeyMsg{Type: tea.KeyCtrlH})
+
+	if model.activeDialog != "" {
+		t.Fatalf("activeDialog after closing Ctrl+H help = %q, want empty", model.activeDialog)
 	}
 }
 
