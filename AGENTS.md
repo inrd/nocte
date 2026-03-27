@@ -8,6 +8,7 @@ The project should evolve in small, reversible steps. Favor simple implementatio
 Keep this file up to date on each iteration of the codebase so it remains a reliable snapshot of current behavior and expectations.
 Keep `README.md` updated on each iteration as user-facing behavior, setup, and workflow change.
 Keep `README.md` focused on meaningful user-facing capabilities and workflow. Avoid documenting low-level implementation details, bugfixes, or internal limits unless they change how a user should use the app.
+Prefer a single `Usage` section in `README.md` over separate feature and how-to sections, and organize it with concise mode-based subsections such as launcher, search, commands, and editor when that matches the current app flow.
 
 ## Current Direction
 
