@@ -79,6 +79,7 @@ The config file currently supports:
 
 ```json
 {
-  "notes_path": "~/nocte"
+  "notes_path": "~/nocte",
+  "tab_width": 4
 }
 ```

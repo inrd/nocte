@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -23,6 +24,9 @@ func TestLoadOrCreateCreatesDefaultConfig(t *testing.T) {
 	wantNotesPath := filepath.Join(tmpHome, "nocte")
 	if cfg.NotesPath != wantNotesPath {
 		t.Fatalf("cfg.NotesPath = %q, want %q", cfg.NotesPath, wantNotesPath)
+	}
+	if cfg.TabWidth != defaultTabWidth {
+		t.Fatalf("cfg.TabWidth = %d, want %d", cfg.TabWidth, defaultTabWidth)
 	}
 
 	data, err := os.ReadFile(configPath)
@@ -57,6 +61,9 @@ func TestLoadBackfillsBlankNotesPath(t *testing.T) {
 	if cfg.NotesPath != wantNotesPath {
 		t.Fatalf("cfg.NotesPath = %q, want %q", cfg.NotesPath, wantNotesPath)
 	}
+	if cfg.TabWidth != defaultTabWidth {
+		t.Fatalf("cfg.TabWidth = %d, want %d", cfg.TabWidth, defaultTabWidth)
+	}
 
 	saved, err := os.ReadFile(configPath)
 	if err != nil {
@@ -89,6 +96,41 @@ func TestLoadExpandsHomeInNotesPath(t *testing.T) {
 	want := filepath.Join(tmpHome, "notes")
 	if cfg.NotesPath != want {
 		t.Fatalf("cfg.NotesPath = %q, want %q", cfg.NotesPath, want)
+	}
+	if cfg.TabWidth != defaultTabWidth {
+		t.Fatalf("cfg.TabWidth = %d, want %d", cfg.TabWidth, defaultTabWidth)
+	}
+}
+
+func TestLoadBackfillsInvalidTabWidth(t *testing.T) {
+	tmpHome := t.TempDir()
+	t.Setenv("HOME", tmpHome)
+
+	configPath := filepath.Join(tmpHome, ".config", "nocte", fileName)
+	if err := os.MkdirAll(filepath.Dir(configPath), 0o755); err != nil {
+		t.Fatalf("MkdirAll() error = %v", err)
+	}
+
+	if err := os.WriteFile(configPath, []byte("{\n  \"notes_path\": \"~/notes\",\n  \"tab_width\": 0\n}\n"), 0o644); err != nil {
+		t.Fatalf("WriteFile() error = %v", err)
+	}
+
+	cfg, err := load(configPath)
+	if err != nil {
+		t.Fatalf("load() error = %v", err)
+	}
+
+	if cfg.TabWidth != defaultTabWidth {
+		t.Fatalf("cfg.TabWidth = %d, want %d", cfg.TabWidth, defaultTabWidth)
+	}
+
+	saved, err := os.ReadFile(configPath)
+	if err != nil {
+		t.Fatalf("ReadFile(%q) error = %v", configPath, err)
+	}
+
+	if !strings.Contains(string(saved), "\"tab_width\": 4") {
+		t.Fatalf("saved config = %q, want backfilled tab_width", string(saved))
 	}
 }
 

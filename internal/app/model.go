@@ -195,6 +195,10 @@ type searchMatch struct {
 }
 
 func New(cfg config.Config, configPath string, version string) Model {
+	if cfg.TabWidth <= 0 {
+		cfg.TabWidth = 4
+	}
+
 	input := textinput.New()
 	input.Placeholder = "Search, /search contents, or create a note..."
 	input.Prompt = ""

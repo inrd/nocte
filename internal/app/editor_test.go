@@ -243,6 +243,42 @@ func TestUpdateCtrlTTurnsBulletIntoOpenTask(t *testing.T) {
 	}
 }
 
+func TestUpdateTabInsertsDefaultIndentWhileEditing(t *testing.T) {
+	tmpDir := t.TempDir()
+	notePath := writeTestNote(t, tmpDir, "draft.md", "- parent")
+
+	model := New(config.Config{NotesPath: tmpDir}, "", "test")
+	model.openEditor(notePath, "draft.md")
+	model.jumpEditorTo(0, 0)
+
+	model = updateModel(t, model, tea.KeyMsg{Type: tea.KeyTab})
+
+	if got := model.editor.Value(); got != "    - parent" {
+		t.Fatalf("editor.Value() = %q, want %q", got, "    - parent")
+	}
+	if got := model.editor.LineInfo().CharOffset; got != 4 {
+		t.Fatalf("editor.LineInfo().CharOffset = %d, want %d", got, 4)
+	}
+}
+
+func TestUpdateTabUsesConfiguredIndentWidth(t *testing.T) {
+	tmpDir := t.TempDir()
+	notePath := writeTestNote(t, tmpDir, "draft.md", "- child")
+
+	model := New(config.Config{NotesPath: tmpDir, TabWidth: 2}, "", "test")
+	model.openEditor(notePath, "draft.md")
+	model.jumpEditorTo(0, 0)
+
+	model = updateModel(t, model, tea.KeyMsg{Type: tea.KeyTab})
+
+	if got := model.editor.Value(); got != "  - child" {
+		t.Fatalf("editor.Value() = %q, want %q", got, "  - child")
+	}
+	if got := model.editor.LineInfo().CharOffset; got != 2 {
+		t.Fatalf("editor.LineInfo().CharOffset = %d, want %d", got, 2)
+	}
+}
+
 func TestUpdateCtrlERendersHTMLAndOpensIt(t *testing.T) {
 	tmpDir := t.TempDir()
 	notePath := writeTestNote(t, tmpDir, "draft.md", "# Before")
