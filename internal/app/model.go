@@ -132,6 +132,7 @@ var (
 		{name: ":files", description: "Open the notes folder"},
 		{name: ":info", description: "Show app and path info"},
 		{name: ":list", description: "List existing notes"},
+		{name: ":todo", description: "List Markdown tasks"},
 		{name: ":quit", description: "Exit the app"},
 	}
 )
@@ -157,6 +158,7 @@ type Model struct {
 	dialogLinks    []noteLink
 	dialogIndex    int
 	dialogOffset   int
+	todoMode       bool
 	editorPath     string
 	editorName     string
 	lastSaved      string

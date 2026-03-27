@@ -45,6 +45,9 @@ func (m Model) handleCommand() (tea.Model, tea.Cmd) {
 	case ":list":
 		m.openListDialog()
 		return m, nil
+	case ":todo":
+		m.openTodoPalette()
+		return m, nil
 	case ":files":
 		if err := os.MkdirAll(m.config.NotesPath, 0o755); err != nil {
 			m.status = fmt.Sprintf("Could not prepare notes dir: %v", err)

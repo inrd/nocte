@@ -33,6 +33,7 @@ Keep `README.md` focused on meaningful user-facing capabilities and workflow. Av
 - Typing a note name in the main input should show a fuzzy note-search palette for existing notes.
 - Typing `/` followed by a query in the main input should show a selectable full-text search palette with one row per match, including the note name and a dimmed multi-line snippet around the match.
 - Running `:list` should show all existing notes in a dialog sorted by last updated, with the updated date/time in green alongside word count and file size metadata.
+- Running `:todo` should show open Markdown task lines from all notes in a scrollable launcher palette that mirrors the full-text search results layout, with the note name on the first line and the task text dimmed below it.
 - Running `:export-all` should rebuild the `html` subdirectory of the main notes directory and render every Markdown note there as HTML without opening a browser.
 - Running `:files` should open the notes directory in the system file manager and create the directory first when it does not exist yet.
 - Typing after `:` should keep command-name prefix matches ahead of looser fuzzy or description-only command matches in the command palette.
@@ -40,6 +41,7 @@ Keep `README.md` focused on meaningful user-facing capabilities and workflow. Av
 - Existing full-text search matches should not be selected by default.
 - Pressing `Up` or `Down` should move through note matches, and pressing `Enter` with a selected match should open that note in the editor.
 - Pressing `Up` or `Down` should move through full-text search matches, and pressing `Enter` with a selected match should open that note in the editor at the matching line.
+- Pressing `Up` or `Down` in `:todo` results should move through task matches, and pressing `Enter` with a selected match should open that note in the editor at the task line.
 - In the `:list` dialog, `Up` and `Down` should move through the full note list, scrolling when needed, and `Enter` should open the selected note in the editor.
 - Pressing Enter on a new note name should create the file and immediately open an editor view for that note.
 - Pressing `Enter` in `/` search mode without a selected match should not create a new note.

@@ -47,12 +47,12 @@ func (m Model) updateKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "ctrl+c", "esc":
 		return m, tea.Quit
 	case "up":
-		if m.isCommandMode() {
-			m.moveCommandSelection(-1)
+		if m.shouldShowSearchPalette() {
+			m.moveSearchSelection(-1)
 			return m, nil
 		}
-		if m.isSearchMode() {
-			m.moveSearchSelection(-1)
+		if m.isCommandMode() {
+			m.moveCommandSelection(-1)
 			return m, nil
 		}
 		if m.hasNotePalette() {
@@ -60,12 +60,12 @@ func (m Model) updateKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 	case "down":
-		if m.isCommandMode() {
-			m.moveCommandSelection(1)
+		if m.shouldShowSearchPalette() {
+			m.moveSearchSelection(1)
 			return m, nil
 		}
-		if m.isSearchMode() {
-			m.moveSearchSelection(1)
+		if m.isCommandMode() {
+			m.moveCommandSelection(1)
 			return m, nil
 		}
 		if m.hasNotePalette() {
@@ -73,11 +73,11 @@ func (m Model) updateKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 	case "enter":
+		if m.shouldShowSearchPalette() {
+			return m.handleSearchResult()
+		}
 		if m.isCommandMode() {
 			return m.handleCommand()
-		}
-		if m.isSearchMode() {
-			return m.handleSearchResult()
 		}
 		if m.noteIndex >= 0 && m.noteIndex < len(m.noteMatches) {
 			if err := m.openExistingNote(m.noteMatches[m.noteIndex]); err != nil {

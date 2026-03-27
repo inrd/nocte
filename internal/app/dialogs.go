@@ -38,6 +38,7 @@ func helpDialog() string {
 		":files Open the notes folder",
 		":info  Show app and path info",
 		":list  List existing notes",
+		":todo  List Markdown tasks",
 		":quit  Exit the app",
 		"",
 		helpStyle.Render("Press Esc or Enter to close."),

@@ -35,6 +35,8 @@ func (m Model) hasNotePalette() bool {
 }
 
 func (m *Model) syncLauncherState() {
+	m.todoMode = false
+
 	if m.isCommandMode() {
 		m.syncCommandSelection()
 		m.noteMatches = nil
@@ -92,6 +94,20 @@ func (m *Model) openListDialog() {
 	}
 	m.input.SetValue(":list")
 	m.input.Blur()
+	m.status = ""
+	m.isError = false
+}
+
+func (m *Model) openTodoPalette() {
+	m.todoMode = true
+	m.input.SetValue(":todo")
+	m.input.Focus()
+	m.commandIndex = 0
+	m.noteMatches = nil
+	m.noteIndex = -1
+	m.searchMatches = m.findTodoMatches()
+	m.searchIndex = -1
+	m.searchOffset = 0
 	m.status = ""
 	m.isError = false
 }

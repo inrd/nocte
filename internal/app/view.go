@@ -26,10 +26,10 @@ func (m Model) View() string {
 	}
 
 	parts := []string{inputBox}
-	if m.isCommandMode() {
-		parts = append(parts, m.commandPaletteView())
-	} else if m.shouldShowSearchPalette() {
+	if m.shouldShowSearchPalette() {
 		parts = append(parts, m.searchPaletteView())
+	} else if m.isCommandMode() {
+		parts = append(parts, m.commandPaletteView())
 	} else if m.shouldShowNotePalette() {
 		parts = append(parts, m.notePaletteView())
 	}
@@ -208,10 +208,13 @@ func (m Model) notePaletteView() string {
 func (m Model) searchPaletteView() string {
 	style := m.searchPaletteStyle()
 	query := m.searchQuery()
-	if query == "" {
+	if !m.isTodoMode() && query == "" {
 		return style.Render(helpStyle.Render("Type after / to search inside your notes"))
 	}
 	if len(m.searchMatches) == 0 {
+		if m.isTodoMode() {
+			return style.Render(helpStyle.Render("No Markdown tasks found"))
+		}
 		return style.Render(helpStyle.Render("No matching note content"))
 	}
 
@@ -244,7 +247,7 @@ func (m Model) searchPaletteStyle() lipgloss.Style {
 }
 
 func (m Model) searchPaletteRow(match searchMatch, contentWidth int) string {
-	title := searchNameStyle.Render(matchHeader(match, contentWidth))
+	title := searchNameStyle.Render(m.searchMatchHeader(match, contentWidth))
 	snippetWidth := max(16, contentWidth)
 	lines := []string{title}
 	for _, snippetLine := range match.snippetLines {
@@ -252,6 +255,14 @@ func (m Model) searchPaletteRow(match searchMatch, contentWidth int) string {
 	}
 
 	return strings.Join(lines, "\n")
+}
+
+func (m Model) searchMatchHeader(match searchMatch, width int) string {
+	if m.isTodoMode() {
+		return truncateText(match.name, width)
+	}
+
+	return matchHeader(match, width)
 }
 
 func matchHeader(match searchMatch, width int) string {

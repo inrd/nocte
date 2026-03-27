@@ -195,12 +195,40 @@ func TestHandleCommandExportAllRebuildsHTMLDirectory(t *testing.T) {
 	}
 }
 
+func TestHandleCommandTodoShowsTaskResults(t *testing.T) {
+	tmpDir := t.TempDir()
+	writeTestNote(t, tmpDir, "alpha.md", "# Work\n- [ ] first task\nplain line")
+	writeTestNote(t, tmpDir, "beta.md", "- [x] done task")
+
+	model := New(config.Config{NotesPath: tmpDir}, "", "test")
+	model.input.SetValue(":todo")
+	model.syncLauncherState()
+
+	model = updateModel(t, model, tea.KeyMsg{Type: tea.KeyEnter})
+
+	if !model.isTodoMode() {
+		t.Fatalf("isTodoMode() = false, want true")
+	}
+	if len(model.searchMatches) != 1 {
+		t.Fatalf("len(searchMatches) = %d, want 1", len(model.searchMatches))
+	}
+	if model.searchIndex != -1 {
+		t.Fatalf("searchIndex = %d, want -1", model.searchIndex)
+	}
+	if model.searchMatches[0].name != "alpha.md" || model.searchMatches[0].lineNumber != 2 {
+		t.Fatalf("searchMatches[0] = %+v, want alpha.md line 2", model.searchMatches[0])
+	}
+	if got := strings.Join(model.searchMatches[0].snippetLines, "\n"); got != "- [ ] first task" {
+		t.Fatalf("searchMatches[0].snippetLines = %q, want %q", got, "- [ ] first task")
+	}
+}
+
 func TestFilteredCommandsPrefersNamePrefixMatches(t *testing.T) {
 	model := New(config.Config{}, "", "test")
 	model.input.SetValue(":l")
 
 	got := commandNames(model.filteredCommands())
-	want := []string{":list", ":help", ":files", ":export-all"}
+	want := []string{":list", ":help", ":files", ":export-all", ":todo"}
 
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("filteredCommands() = %v, want %v", got, want)
@@ -225,6 +253,18 @@ func TestFilteredCommandsFindsExportAllByPrefix(t *testing.T) {
 
 	got := commandNames(model.filteredCommands())
 	want := []string{":export-all"}
+
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("filteredCommands() = %v, want %v", got, want)
+	}
+}
+
+func TestFilteredCommandsFindsTodoByPrefix(t *testing.T) {
+	model := New(config.Config{}, "", "test")
+	model.input.SetValue(":tod")
+
+	got := commandNames(model.filteredCommands())
+	want := []string{":todo"}
 
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("filteredCommands() = %v, want %v", got, want)

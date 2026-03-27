@@ -474,6 +474,13 @@ func isTaskListLine(line string) bool {
 		strings.HasPrefix(trimmed, "+ [X] ")
 }
 
+func isOpenTaskListLine(line string) bool {
+	trimmed := strings.TrimLeftFunc(line, unicode.IsSpace)
+	return strings.HasPrefix(trimmed, "- [ ] ") ||
+		strings.HasPrefix(trimmed, "* [ ] ") ||
+		strings.HasPrefix(trimmed, "+ [ ] ")
+}
+
 func isNumberedLine(line string) bool {
 	trimmed := strings.TrimLeftFunc(line, unicode.IsSpace)
 	parts := strings.SplitN(trimmed, ". ", 2)

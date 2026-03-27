@@ -15,15 +15,23 @@ func (m Model) isSearchMode() bool {
 	return strings.HasPrefix(strings.TrimSpace(m.input.Value()), "/")
 }
 
+func (m Model) isTodoMode() bool {
+	return m.todoMode && strings.TrimSpace(m.input.Value()) == ":todo"
+}
+
 func (m Model) searchQuery() string {
 	return strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(m.input.Value()), "/"))
 }
 
 func (m Model) shouldShowSearchPalette() bool {
-	return m.isSearchMode()
+	return m.isSearchMode() || m.isTodoMode()
 }
 
 func (m Model) hasSearchPalette() bool {
+	if m.isTodoMode() {
+		return len(m.searchMatches) > 0
+	}
+
 	return m.searchQuery() != "" && len(m.searchMatches) > 0
 }
 
@@ -114,6 +122,65 @@ func (m Model) findSearchMatches(query string) []searchMatch {
 	return matches
 }
 
+func (m Model) findTodoMatches() []searchMatch {
+	entries, err := os.ReadDir(m.config.NotesPath)
+	if err != nil {
+		return nil
+	}
+
+	matches := make([]searchMatch, 0, min(searchResultLimit, len(entries)))
+	for _, entry := range entries {
+		if len(matches) >= searchResultLimit || entry.IsDir() {
+			if len(matches) >= searchResultLimit {
+				break
+			}
+			continue
+		}
+
+		name := entry.Name()
+		if filepath.Ext(name) != ".md" {
+			continue
+		}
+
+		path := filepath.Join(m.config.NotesPath, name)
+		content, err := os.ReadFile(path)
+		if err != nil {
+			continue
+		}
+
+		lines := strings.Split(string(content), "\n")
+		for lineIndex, line := range lines {
+			if !isOpenTaskListLine(line) {
+				continue
+			}
+
+			matches = append(matches, searchMatch{
+				name:         name,
+				path:         path,
+				lineNumber:   lineIndex + 1,
+				column:       0,
+				snippetLines: []string{strings.TrimSpace(line)},
+			})
+			if len(matches) >= searchResultLimit {
+				break
+			}
+		}
+
+		if len(matches) >= searchResultLimit {
+			break
+		}
+	}
+
+	sort.Slice(matches, func(i int, j int) bool {
+		if matches[i].name != matches[j].name {
+			return matches[i].name < matches[j].name
+		}
+		return matches[i].lineNumber < matches[j].lineNumber
+	})
+
+	return matches
+}
+
 func allMatchColumns(line string, queryLower string) []int {
 	if queryLower == "" {
 		return nil
@@ -157,6 +224,18 @@ func (m Model) handleSearchResult() (tea.Model, tea.Cmd) {
 			m.status = err.Error()
 			m.isError = true
 		}
+		return m, nil
+	}
+
+	if m.isTodoMode() {
+		if len(m.searchMatches) == 0 {
+			m.status = "No Markdown tasks found"
+			m.isError = true
+			return m, nil
+		}
+
+		m.status = "Select a task with Up or Down"
+		m.isError = false
 		return m, nil
 	}
 

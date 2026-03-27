@@ -46,6 +46,28 @@ func TestFindSearchMatchesReturnsOneRowPerMatchWithSnippets(t *testing.T) {
 	}
 }
 
+func TestFindTodoMatchesReturnsOneRowPerTask(t *testing.T) {
+	tmpDir := t.TempDir()
+	writeTestNote(t, tmpDir, "alpha.md", "- [ ] first\nnot a task\n  * [x] second")
+	writeTestNote(t, tmpDir, "beta.md", "plain\n+ [ ] third")
+
+	model := New(config.Config{NotesPath: tmpDir}, "", "test")
+
+	matches := model.findTodoMatches()
+	if len(matches) != 2 {
+		t.Fatalf("len(matches) = %d, want 2", len(matches))
+	}
+	if matches[0].name != "alpha.md" || matches[0].lineNumber != 1 {
+		t.Fatalf("matches[0] = %+v, want alpha.md line 1", matches[0])
+	}
+	if !reflect.DeepEqual(matches[1].snippetLines, []string{"+ [ ] third"}) {
+		t.Fatalf("matches[1].snippetLines = %v, want %v", matches[1].snippetLines, []string{"+ [ ] third"})
+	}
+	if matches[1].name != "beta.md" || matches[1].lineNumber != 2 {
+		t.Fatalf("matches[1] = %+v, want beta.md line 2", matches[1])
+	}
+}
+
 func TestUpdateSearchModeEnterOpensSelectedMatchAtLineAndColumn(t *testing.T) {
 	tmpDir := t.TempDir()
 	notePath := writeTestNote(t, tmpDir, "meeting.md", "alpha line\nbeta target here\ngamma line")
@@ -115,6 +137,44 @@ func TestUpdateSearchModeEnterWithoutSelectionDoesNotCreateNote(t *testing.T) {
 	createdPath := filepath.Join(tmpDir, "target.md")
 	if _, err := os.Stat(createdPath); err == nil {
 		t.Fatalf("Stat(%q) = nil, want no created file", createdPath)
+	}
+}
+
+func TestUpdateTodoModeEnterOpensSelectedTaskAtLine(t *testing.T) {
+	tmpDir := t.TempDir()
+	notePath := writeTestNote(t, tmpDir, "meeting.md", "alpha\n- [ ] beta task\ngamma")
+
+	model := New(config.Config{NotesPath: tmpDir}, "", "test")
+	model.openTodoPalette()
+	model.searchIndex = 0
+
+	model = updateModel(t, model, tea.KeyMsg{Type: tea.KeyEnter})
+
+	if model.editorPath != notePath {
+		t.Fatalf("editorPath = %q, want %q", model.editorPath, notePath)
+	}
+	if model.editor.Line() != 1 {
+		t.Fatalf("editor.Line() = %d, want 1", model.editor.Line())
+	}
+	if model.status != "Editing meeting.md at line 2" {
+		t.Fatalf("status = %q, want %q", model.status, "Editing meeting.md at line 2")
+	}
+}
+
+func TestUpdateTodoModeEnterWithoutSelectionPromptsForChoice(t *testing.T) {
+	tmpDir := t.TempDir()
+	writeTestNote(t, tmpDir, "meeting.md", "- [ ] beta task")
+
+	model := New(config.Config{NotesPath: tmpDir}, "", "test")
+	model.openTodoPalette()
+
+	model = updateModel(t, model, tea.KeyMsg{Type: tea.KeyEnter})
+
+	if model.isEditing() {
+		t.Fatalf("model should not enter editor without a selected todo result")
+	}
+	if model.status != "Select a task with Up or Down" {
+		t.Fatalf("status = %q, want %q", model.status, "Select a task with Up or Down")
 	}
 }
 

@@ -38,6 +38,7 @@ func (m *Model) openEditor(path string, name string) {
 	m.searchIndex = -1
 	m.noteMatches = nil
 	m.searchMatches = nil
+	m.todoMode = false
 	m.dialogNotes = nil
 	m.dialogIndex = -1
 	m.dialogOffset = 0
