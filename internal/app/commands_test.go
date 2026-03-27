@@ -146,12 +146,61 @@ func TestHandleCommandFilesShowsLaunchError(t *testing.T) {
 	}
 }
 
+func TestHandleCommandExportAllRebuildsHTMLDirectory(t *testing.T) {
+	tmpDir := t.TempDir()
+	writeTestNote(t, tmpDir, "alpha.md", "# Alpha")
+	writeTestNote(t, tmpDir, "beta.md", "Beta text")
+
+	htmlDir := filepath.Join(tmpDir, "html")
+	if err := os.MkdirAll(htmlDir, 0o755); err != nil {
+		t.Fatalf("MkdirAll(%q) error = %v", htmlDir, err)
+	}
+	if err := os.WriteFile(filepath.Join(htmlDir, "stale.html"), []byte("old"), 0o644); err != nil {
+		t.Fatalf("WriteFile(stale.html) error = %v", err)
+	}
+
+	model := New(config.Config{NotesPath: tmpDir}, "", "test")
+	model.input.SetValue(":export-all")
+	model.syncLauncherState()
+
+	model = updateModel(t, model, tea.KeyMsg{Type: tea.KeyEnter})
+
+	if model.status != "Rendered 2 notes to html" {
+		t.Fatalf("status = %q, want %q", model.status, "Rendered 2 notes to html")
+	}
+	if model.isError {
+		t.Fatalf("isError = true, want false")
+	}
+	if model.input.Value() != "" {
+		t.Fatalf("input.Value() = %q, want empty", model.input.Value())
+	}
+	if _, err := os.Stat(filepath.Join(htmlDir, "stale.html")); !os.IsNotExist(err) {
+		t.Fatalf("Stat(stale.html) error = %v, want removed", err)
+	}
+
+	alphaHTML, err := os.ReadFile(filepath.Join(htmlDir, "alpha.html"))
+	if err != nil {
+		t.Fatalf("ReadFile(alpha.html) error = %v", err)
+	}
+	if !strings.Contains(string(alphaHTML), "<h1>Alpha</h1>") {
+		t.Fatalf("alpha html = %q, want rendered heading", string(alphaHTML))
+	}
+
+	betaHTML, err := os.ReadFile(filepath.Join(htmlDir, "beta.html"))
+	if err != nil {
+		t.Fatalf("ReadFile(beta.html) error = %v", err)
+	}
+	if !strings.Contains(string(betaHTML), "<p>Beta text</p>") {
+		t.Fatalf("beta html = %q, want rendered paragraph", string(betaHTML))
+	}
+}
+
 func TestFilteredCommandsPrefersNamePrefixMatches(t *testing.T) {
 	model := New(config.Config{}, "", "test")
 	model.input.SetValue(":l")
 
 	got := commandNames(model.filteredCommands())
-	want := []string{":list", ":help", ":files"}
+	want := []string{":list", ":help", ":files", ":export-all"}
 
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("filteredCommands() = %v, want %v", got, want)
@@ -164,6 +213,18 @@ func TestFilteredCommandsPrefersNameMatchesOverDescriptionMatches(t *testing.T) 
 
 	got := commandNames(model.filteredCommands())
 	want := []string{":info"}
+
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("filteredCommands() = %v, want %v", got, want)
+	}
+}
+
+func TestFilteredCommandsFindsExportAllByPrefix(t *testing.T) {
+	model := New(config.Config{}, "", "test")
+	model.input.SetValue(":exp")
+
+	got := commandNames(model.filteredCommands())
+	want := []string{":export-all"}
 
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("filteredCommands() = %v, want %v", got, want)

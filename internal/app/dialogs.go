@@ -31,6 +31,7 @@ func helpDialog() string {
 		lipgloss.Left,
 		dialogTitleStyle.Render("Commands"),
 		"",
+		":export-all Render all notes to HTML",
 		":help  Show this dialog",
 		":files Open the notes folder",
 		":info  Show app and path info",

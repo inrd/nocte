@@ -32,6 +32,7 @@ Keep `README.md` focused on meaningful user-facing capabilities and workflow. Av
 - New notes are created from the main input.
 - Typing a note name in the main input should show a fuzzy note-search palette for existing notes.
 - Running `:list` should show all existing notes in a dialog sorted by last updated, with the updated date/time in green alongside word count and file size metadata.
+- Running `:export-all` should rebuild the `html` subdirectory of the main notes directory and render every Markdown note there as HTML without opening a browser.
 - Running `:files` should open the notes directory in the system file manager and create the directory first when it does not exist yet.
 - Typing after `:` should keep command-name prefix matches ahead of looser fuzzy or description-only command matches in the command palette.
 - Existing note matches should not be selected by default.

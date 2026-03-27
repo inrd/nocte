@@ -117,6 +117,7 @@ var (
 	openPathWithSystemApp = openPath
 	openURLWithSystemApp  = openURL
 	commands              = []command{
+		{name: ":export-all", description: "Render all notes to HTML"},
 		{name: ":help", description: "Show available commands"},
 		{name: ":files", description: "Open the notes folder"},
 		{name: ":info", description: "Show app and path info"},

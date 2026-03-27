@@ -30,6 +30,7 @@ export PATH="$HOME/.local/bin:$PATH"
 - Create a new note from the main input
 - Fuzzy-search existing notes as you type
 - Browse all notes with `:list`
+- Render all notes to HTML with `:export-all`
 - Edit notes in a plain text editor with an optional live Markdown preview for headings, lists, task lists, links, inline code, bold, italics, and strikethrough, including terminal image rendering through `chafa` when available
 - Export the current note from the editor to an HTML file in `~/nocte/html` or your configured notes directory equivalent, then open it in your default browser
 - Open note links from the editor with a keyboard shortcut
@@ -55,6 +56,7 @@ If `chafa` is not installed or an image cannot be rendered, the preview falls ba
 ## Commands
 
 - `:help` shows available commands
+- `:export-all` renders all notes to HTML in the notes directory `html` folder
 - `:info` shows version and path information
 - `:list` shows all existing notes in a selectable dialog sorted by last update
 - `:files` opens the notes directory in the system file manager

@@ -38,6 +38,39 @@ func (m *Model) exportEditorHTML() error {
 	return nil
 }
 
+func (m *Model) exportAllNotesHTML() error {
+	if err := os.MkdirAll(m.config.NotesPath, 0o755); err != nil {
+		return fmt.Errorf("could not prepare notes dir: %w", err)
+	}
+
+	exportDir := filepath.Join(m.config.NotesPath, "html")
+	if err := os.RemoveAll(exportDir); err != nil {
+		return fmt.Errorf("could not clean HTML export dir: %w", err)
+	}
+	if err := os.MkdirAll(exportDir, 0o755); err != nil {
+		return fmt.Errorf("could not prepare HTML export dir: %w", err)
+	}
+
+	notes := m.listNotes()
+	for _, note := range notes {
+		content, err := os.ReadFile(note.path)
+		if err != nil {
+			return fmt.Errorf("could not read %s: %w", note.name, err)
+		}
+
+		fileName := strings.TrimSuffix(note.name, filepath.Ext(note.name)) + ".html"
+		exportPath := filepath.Join(exportDir, fileName)
+		rendered := renderMarkdownHTMLDocument(note.name, note.path, string(content))
+		if err := os.WriteFile(exportPath, []byte(rendered), 0o644); err != nil {
+			return fmt.Errorf("could not write HTML export for %s: %w", note.name, err)
+		}
+	}
+
+	m.status = fmt.Sprintf("Rendered %d notes to html", len(notes))
+	m.isError = false
+	return nil
+}
+
 func renderMarkdownHTMLDocument(noteName string, notePath string, content string) string {
 	title := strings.TrimSuffix(noteName, filepath.Ext(noteName))
 	if strings.TrimSpace(title) == "" {
