@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -60,11 +61,28 @@ func TestFindTodoMatchesReturnsOneRowPerTask(t *testing.T) {
 	if matches[0].name != "alpha.md" || matches[0].lineNumber != 1 {
 		t.Fatalf("matches[0] = %+v, want alpha.md line 1", matches[0])
 	}
+	if matches[0].taskDone != 1 || matches[0].taskTotal != 2 {
+		t.Fatalf("matches[0] task progress = (%d, %d), want (1, 2)", matches[0].taskDone, matches[0].taskTotal)
+	}
 	if !reflect.DeepEqual(matches[1].snippetLines, []string{"+ [ ] third"}) {
 		t.Fatalf("matches[1].snippetLines = %v, want %v", matches[1].snippetLines, []string{"+ [ ] third"})
 	}
 	if matches[1].name != "beta.md" || matches[1].lineNumber != 2 {
 		t.Fatalf("matches[1] = %+v, want beta.md line 2", matches[1])
+	}
+}
+
+func TestTodoMatchHeaderIncludesColoredPercentage(t *testing.T) {
+	header := todoMatchHeader(searchMatch{name: "alpha.md", taskDone: 1, taskTotal: 2})
+
+	if !strings.Contains(header, "alpha.md") {
+		t.Fatalf("todoMatchHeader() = %q, want note name", header)
+	}
+	if !strings.Contains(header, "50%") {
+		t.Fatalf("todoMatchHeader() = %q, want task percentage", header)
+	}
+	if !strings.Contains(header, editorTaskProgressStyle(50).Render("50%")) {
+		t.Fatalf("todoMatchHeader() = %q, want color-coded task percentage", header)
 	}
 }
 

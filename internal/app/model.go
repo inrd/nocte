@@ -202,6 +202,8 @@ type searchMatch struct {
 	path         string
 	lineNumber   int
 	column       int
+	taskDone     int
+	taskTotal    int
 	snippetLines []string
 }
 

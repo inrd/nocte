@@ -147,6 +147,7 @@ func (m Model) findTodoMatches() []searchMatch {
 		if err != nil {
 			continue
 		}
+		taskDone, taskTotal := countTaskProgress(string(content))
 
 		lines := strings.Split(string(content), "\n")
 		for lineIndex, line := range lines {
@@ -159,6 +160,8 @@ func (m Model) findTodoMatches() []searchMatch {
 				path:         path,
 				lineNumber:   lineIndex + 1,
 				column:       0,
+				taskDone:     taskDone,
+				taskTotal:    taskTotal,
 				snippetLines: []string{strings.TrimSpace(line)},
 			})
 			if len(matches) >= searchResultLimit {

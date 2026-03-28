@@ -434,10 +434,24 @@ func (m Model) searchPaletteRow(match searchMatch, contentWidth int) string {
 
 func (m Model) searchMatchHeader(match searchMatch, width int) string {
 	if m.isTodoMode() {
-		return truncateText(match.name, width)
+		return truncateText(todoMatchHeader(match), width)
 	}
 
 	return matchHeader(match, width)
+}
+
+func todoMatchHeader(match searchMatch) string {
+	if match.taskTotal <= 0 {
+		return match.name
+	}
+
+	percent := match.taskDone * 100 / match.taskTotal
+	return lipgloss.JoinHorizontal(
+		lipgloss.Left,
+		match.name,
+		helpStyle.Render(" "),
+		editorTaskProgressStyle(percent).Render(fmt.Sprintf("%d%%", percent)),
+	)
 }
 
 func matchHeader(match searchMatch, width int) string {

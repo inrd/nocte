@@ -218,6 +218,9 @@ func TestHandleCommandTodoShowsTaskResults(t *testing.T) {
 	if model.searchMatches[0].name != "alpha.md" || model.searchMatches[0].lineNumber != 2 {
 		t.Fatalf("searchMatches[0] = %+v, want alpha.md line 2", model.searchMatches[0])
 	}
+	if model.searchMatches[0].taskDone != 0 || model.searchMatches[0].taskTotal != 1 {
+		t.Fatalf("searchMatches[0] task progress = (%d, %d), want (0, 1)", model.searchMatches[0].taskDone, model.searchMatches[0].taskTotal)
+	}
 	if got := strings.Join(model.searchMatches[0].snippetLines, "\n"); got != "- [ ] first task" {
 		t.Fatalf("searchMatches[0].snippetLines = %q, want %q", got, "- [ ] first task")
 	}
