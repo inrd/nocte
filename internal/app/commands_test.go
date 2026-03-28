@@ -271,6 +271,27 @@ func TestFilteredCommandsFindsTodoByPrefix(t *testing.T) {
 	}
 }
 
+func TestCommandPaletteViewUsesScrollableViewport(t *testing.T) {
+	model := New(config.Config{}, "", "test")
+	model.height = 12
+	model.input.SetValue(":")
+	model.commandIndex = len(commands) - 1
+	model.syncCommandSelection()
+	model.syncCommandOffset()
+
+	rendered := model.commandPaletteView()
+
+	if !strings.Contains(rendered, "Showing") {
+		t.Fatalf("commandPaletteView() missing viewport footer: %q", rendered)
+	}
+	if !strings.Contains(rendered, ":quit") {
+		t.Fatalf("commandPaletteView() missing tail item: %q", rendered)
+	}
+	if strings.Contains(rendered, ":export-all") {
+		t.Fatalf("commandPaletteView() should scroll past early items: %q", rendered)
+	}
+}
+
 func commandNames(commands []command) []string {
 	names := make([]string, 0, len(commands))
 	for _, command := range commands {

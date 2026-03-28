@@ -33,6 +33,8 @@ Prefer a single `Usage` section in `README.md` over separate feature and how-to 
 - New notes are created from the main input.
 - Typing a note name in the main input should show a fuzzy note-search palette for existing notes.
 - Typing `/` followed by a query in the main input should show a selectable full-text search palette with one row per match, including the note name and a dimmed multi-line snippet around the match.
+- The launcher input should stay visually anchored while note, command, and search palettes update below it, including the empty launcher state before typing.
+- Launcher note, command, `/` search, and `:todo` palettes should stay within the current terminal window and use scrolling instead of growing without bound.
 - Running `:list` should show all existing notes in a dialog sorted by last updated, with the updated date/time in green alongside word count and file size metadata.
 - Running `:todo` should show open Markdown task lines from all notes in a scrollable launcher palette that mirrors the full-text search results layout, with the note name on the first line and the task text dimmed below it.
 - Running `:export-all` should rebuild the `html` subdirectory of the main notes directory and render every Markdown note there as HTML without opening a browser.

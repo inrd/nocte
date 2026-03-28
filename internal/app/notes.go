@@ -41,6 +41,7 @@ func (m *Model) syncLauncherState() {
 		m.syncCommandSelection()
 		m.noteMatches = nil
 		m.noteIndex = -1
+		m.noteOffset = 0
 		m.searchMatches = nil
 		m.searchIndex = -1
 		m.searchOffset = 0
@@ -49,8 +50,10 @@ func (m *Model) syncLauncherState() {
 
 	if m.isSearchMode() {
 		m.commandIndex = 0
+		m.commandOffset = 0
 		m.noteMatches = nil
 		m.noteIndex = -1
+		m.noteOffset = 0
 		m.searchMatches = m.findSearchMatches(m.searchQuery())
 		m.searchIndex = -1
 		m.searchOffset = 0
@@ -58,8 +61,10 @@ func (m *Model) syncLauncherState() {
 	}
 
 	m.commandIndex = 0
+	m.commandOffset = 0
 	m.noteMatches = m.findNoteMatches(strings.TrimSpace(m.input.Value()))
 	m.noteIndex = -1
+	m.noteOffset = 0
 	m.searchMatches = nil
 	m.searchIndex = -1
 	m.searchOffset = 0
@@ -68,20 +73,24 @@ func (m *Model) syncLauncherState() {
 func (m *Model) moveNoteSelection(delta int) {
 	if len(m.noteMatches) == 0 {
 		m.noteIndex = -1
+		m.noteOffset = 0
 		return
 	}
 
 	if m.noteIndex == -1 {
 		if delta > 0 {
 			m.noteIndex = 0
+			m.syncNoteOffset()
 			return
 		}
 
 		m.noteIndex = len(m.noteMatches) - 1
+		m.syncNoteOffset()
 		return
 	}
 
 	m.noteIndex = (m.noteIndex + delta + len(m.noteMatches)) % len(m.noteMatches)
+	m.syncNoteOffset()
 }
 
 func (m *Model) openListDialog() {
@@ -103,8 +112,10 @@ func (m *Model) openTodoPalette() {
 	m.input.SetValue(":todo")
 	m.input.Focus()
 	m.commandIndex = 0
+	m.commandOffset = 0
 	m.noteMatches = nil
 	m.noteIndex = -1
+	m.noteOffset = 0
 	m.searchMatches = m.findTodoMatches()
 	m.searchIndex = -1
 	m.searchOffset = 0
@@ -224,6 +235,26 @@ func (m Model) findNoteMatches(query string) []noteMatch {
 	})
 
 	return filtered
+}
+
+func (m *Model) syncNoteOffset() {
+	visible := m.launcherListVisibleCount()
+	if visible <= 0 {
+		m.noteOffset = 0
+		return
+	}
+
+	maxOffset := max(0, len(m.noteMatches)-visible)
+	m.noteOffset = clampInt(m.noteOffset, 0, maxOffset)
+	if m.noteIndex < 0 {
+		return
+	}
+	if m.noteIndex < m.noteOffset {
+		m.noteOffset = m.noteIndex
+	}
+	if m.noteIndex >= m.noteOffset+visible {
+		m.noteOffset = m.noteIndex - visible + 1
+	}
 }
 
 func (m Model) listNotes() []noteMatch {

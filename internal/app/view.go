@@ -26,13 +26,7 @@ func (m Model) View() string {
 	}
 
 	parts := []string{inputBox}
-	if m.shouldShowSearchPalette() {
-		parts = append(parts, m.searchPaletteView())
-	} else if m.isCommandMode() {
-		parts = append(parts, m.commandPaletteView())
-	} else if m.shouldShowNotePalette() {
-		parts = append(parts, m.notePaletteView())
-	}
+	parts = append(parts, m.launcherPaletteView())
 	parts = append(parts, help, status)
 
 	content := lipgloss.JoinVertical(lipgloss.Center, parts...)
@@ -134,13 +128,16 @@ func (m Model) editorWarningLine() string {
 }
 
 func (m Model) commandPaletteView() string {
+	style := m.commandPaletteStyle()
 	matches := m.filteredCommands()
 	if len(matches) == 0 {
-		return commandPaletteStyle.Render(errorStyle.Render("No matching commands"))
+		return style.Render(errorStyle.Render("No matching commands"))
 	}
 
-	lines := make([]string, 0, len(matches))
-	for i, command := range matches {
+	start, end := m.commandVisibleRange(len(matches))
+	lines := make([]string, 0, end-start+1)
+	for i := start; i < end; i++ {
+		command := matches[i]
 		line := commandPaletteLine(command)
 		if i == m.commandIndex {
 			lines = append(lines, commandSelectedStyle.Render(line))
@@ -150,7 +147,24 @@ func (m Model) commandPaletteView() string {
 		lines = append(lines, line)
 	}
 
-	return commandPaletteStyle.Render(strings.Join(lines, "\n"))
+	if len(matches) > 1 {
+		lines = append(lines, helpStyle.Render(fmt.Sprintf("Showing %d-%d of %d", start+1, end, len(matches))))
+	}
+
+	return style.Render(strings.Join(lines, "\n"))
+}
+
+func (m Model) launcherPaletteView() string {
+	switch {
+	case m.shouldShowSearchPalette():
+		return m.searchPaletteView()
+	case m.isCommandMode():
+		return m.commandPaletteView()
+	case m.shouldShowNotePalette():
+		return m.notePaletteView()
+	default:
+		return m.commandPaletteStyle().Render(helpStyle.Render("Start typing to search notes, create one, or run a command"))
+	}
 }
 
 func commandPaletteLine(command command) string {
@@ -158,12 +172,15 @@ func commandPaletteLine(command command) string {
 }
 
 func (m Model) notePaletteView() string {
+	style := m.commandPaletteStyle()
 	if len(m.noteMatches) == 0 {
-		return commandPaletteStyle.Render(helpStyle.Render("No matching notes"))
+		return style.Render(helpStyle.Render("No matching notes"))
 	}
 
-	lines := make([]string, 0, len(m.noteMatches))
-	for i, note := range m.noteMatches {
+	start, end := m.noteVisibleRange()
+	lines := make([]string, 0, end-start+1)
+	for i := start; i < end; i++ {
+		note := m.noteMatches[i]
 		line := note.name
 		if i == m.noteIndex {
 			lines = append(lines, commandSelectedStyle.Render(line))
@@ -173,7 +190,11 @@ func (m Model) notePaletteView() string {
 		lines = append(lines, line)
 	}
 
-	return commandPaletteStyle.Render(strings.Join(lines, "\n"))
+	if len(m.noteMatches) > 1 {
+		lines = append(lines, helpStyle.Render(fmt.Sprintf("Showing %d-%d of %d", start+1, end, len(m.noteMatches))))
+	}
+
+	return style.Render(strings.Join(lines, "\n"))
 }
 
 func (m Model) searchPaletteView() string {
@@ -208,13 +229,56 @@ func (m Model) searchPaletteView() string {
 	return style.Render(strings.Join(rows, "\n"))
 }
 
+func (m Model) commandPaletteStyle() lipgloss.Style {
+	height := m.launcherPaletteContentBudget()
+	return commandPaletteStyle.Copy().Height(height)
+}
+
 func (m Model) searchPaletteStyle() lipgloss.Style {
 	width := defaultSearchPaletteWidth
 	if m.width > 0 {
 		width = min(maxSearchPaletteWidth, max(56, m.width-8))
 	}
 
-	return commandPaletteStyle.Copy().Width(width)
+	height := m.launcherPaletteContentBudget()
+	return commandPaletteStyle.Copy().Width(width).Height(height)
+}
+
+func (m Model) launcherListVisibleCount() int {
+	budget := m.launcherPaletteContentBudget()
+	if budget <= 1 {
+		return 1
+	}
+
+	return budget - 1
+}
+
+func (m Model) commandVisibleRange(total int) (int, int) {
+	if total == 0 {
+		return 0, 0
+	}
+
+	visible := m.launcherListVisibleCount()
+	if visible <= 0 || total <= visible {
+		return 0, total
+	}
+
+	start := clampInt(m.commandOffset, 0, total-visible)
+	return start, min(total, start+visible)
+}
+
+func (m Model) noteVisibleRange() (int, int) {
+	if len(m.noteMatches) == 0 {
+		return 0, 0
+	}
+
+	visible := m.launcherListVisibleCount()
+	if visible <= 0 || len(m.noteMatches) <= visible {
+		return 0, len(m.noteMatches)
+	}
+
+	start := clampInt(m.noteOffset, 0, len(m.noteMatches)-visible)
+	return start, min(len(m.noteMatches), start+visible)
 }
 
 func (m Model) searchPaletteRow(match searchMatch, contentWidth int) string {

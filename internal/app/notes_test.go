@@ -3,6 +3,7 @@ package app
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -190,5 +191,47 @@ func TestUpdateEnterOpensSelectedExistingNote(t *testing.T) {
 	}
 	if model.status != "Editing meeting-notes.md" {
 		t.Fatalf("status = %q, want %q", model.status, "Editing meeting-notes.md")
+	}
+}
+
+func TestNotePaletteViewUsesScrollableViewport(t *testing.T) {
+	model := New(config.Config{}, "", "test")
+	model.height = 12
+	model.noteMatches = []noteMatch{
+		{name: "one.md"},
+		{name: "two.md"},
+		{name: "three.md"},
+		{name: "four.md"},
+		{name: "five.md"},
+		{name: "six.md"},
+	}
+	model.noteIndex = len(model.noteMatches) - 1
+	model.syncNoteOffset()
+
+	rendered := model.notePaletteView()
+
+	if !strings.Contains(rendered, "Showing") {
+		t.Fatalf("notePaletteView() missing viewport footer: %q", rendered)
+	}
+	if !strings.Contains(rendered, "six.md") {
+		t.Fatalf("notePaletteView() missing tail item: %q", rendered)
+	}
+	if strings.Contains(rendered, "one.md") {
+		t.Fatalf("notePaletteView() should scroll past early items: %q", rendered)
+	}
+}
+
+func TestLauncherViewReservesPaletteSpaceWhenInputIsEmpty(t *testing.T) {
+	model := New(config.Config{}, "", "test")
+	model.width = 80
+	model.height = 24
+
+	rendered := model.View()
+
+	if !strings.Contains(rendered, "Start typing to search notes, create one, or") {
+		t.Fatalf("View() missing empty launcher placeholder: %q", rendered)
+	}
+	if !strings.Contains(rendered, "run a command") {
+		t.Fatalf("View() missing empty launcher placeholder: %q", rendered)
 	}
 }

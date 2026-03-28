@@ -21,6 +21,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.isSearchMode() {
 			m.syncSearchOffset()
 		}
+		if m.isCommandMode() {
+			m.syncCommandOffset()
+		}
+		if m.hasNotePalette() {
+			m.syncNoteOffset()
+		}
 		return m, nil
 	case tea.KeyMsg:
 		return m.updateKey(msg)

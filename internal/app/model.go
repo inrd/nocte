@@ -149,7 +149,9 @@ type Model struct {
 	version        string
 	activeDialog   string
 	commandIndex   int
+	commandOffset  int
 	noteIndex      int
+	noteOffset     int
 	searchIndex    int
 	searchOffset   int
 	noteMatches    []noteMatch
@@ -216,7 +218,9 @@ func New(cfg config.Config, configPath string, version string) Model {
 	return Model{
 		input:          input,
 		editor:         editor,
+		commandOffset:  0,
 		noteIndex:      -1,
+		noteOffset:     0,
 		searchIndex:    -1,
 		searchOffset:   0,
 		dialogIndex:    -1,

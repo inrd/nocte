@@ -291,7 +291,7 @@ func (m Model) searchVisibleRangeFrom(start int) (int, int) {
 	}
 
 	start = clampInt(start, 0, len(m.searchMatches)-1)
-	budget := m.searchPaletteContentBudget()
+	budget := m.launcherPaletteContentBudget()
 	if len(m.searchMatches) > 1 {
 		budget--
 	}
@@ -321,7 +321,7 @@ func (m Model) searchVisibleRangeFrom(start int) (int, int) {
 	return start, end
 }
 
-func (m Model) searchPaletteContentBudget() int {
+func (m Model) launcherPaletteContentBudget() int {
 	if m.height <= 0 {
 		return 12
 	}

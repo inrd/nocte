@@ -154,6 +154,7 @@ func (m *Model) syncCommandSelection() {
 	matches := m.filteredCommands()
 	if len(matches) == 0 {
 		m.commandIndex = 0
+		m.commandOffset = 0
 		return
 	}
 
@@ -161,6 +162,7 @@ func (m *Model) syncCommandSelection() {
 	for i, command := range matches {
 		if command.name == typed {
 			m.commandIndex = i
+			m.syncCommandOffset()
 			return
 		}
 	}
@@ -168,14 +170,38 @@ func (m *Model) syncCommandSelection() {
 	if m.commandIndex >= len(matches) {
 		m.commandIndex = len(matches) - 1
 	}
+	if m.commandIndex < 0 {
+		m.commandIndex = 0
+	}
+	m.syncCommandOffset()
 }
 
 func (m *Model) moveCommandSelection(delta int) {
 	matches := m.filteredCommands()
 	if len(matches) == 0 {
 		m.commandIndex = 0
+		m.commandOffset = 0
 		return
 	}
 
 	m.commandIndex = (m.commandIndex + delta + len(matches)) % len(matches)
+	m.syncCommandOffset()
+}
+
+func (m *Model) syncCommandOffset() {
+	visible := m.launcherListVisibleCount()
+	if visible <= 0 {
+		m.commandOffset = 0
+		return
+	}
+
+	total := len(m.filteredCommands())
+	maxOffset := max(0, total-visible)
+	m.commandOffset = clampInt(m.commandOffset, 0, maxOffset)
+	if m.commandIndex < m.commandOffset {
+		m.commandOffset = m.commandIndex
+	}
+	if m.commandIndex >= m.commandOffset+visible {
+		m.commandOffset = m.commandIndex - visible + 1
+	}
 }
