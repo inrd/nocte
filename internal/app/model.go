@@ -126,6 +126,7 @@ var (
 	invalidFileChars      = regexp.MustCompile(`[^a-z0-9._-]+`)
 	openPathWithSystemApp = openPath
 	openURLWithSystemApp  = openURL
+	writeClipboardText    = copyToClipboard
 	commands              = []command{
 		{name: ":export-all", description: "Render all notes to HTML"},
 		{name: ":help", description: "Show available commands"},

@@ -322,6 +322,99 @@ func TestUpdateTabUsesConfiguredIndentWidth(t *testing.T) {
 	}
 }
 
+func TestUpdateCtrlKCopiesInlineCodeAtCursor(t *testing.T) {
+	tmpDir := t.TempDir()
+	notePath := writeTestNote(t, tmpDir, "draft.md", "prefix `copied value` suffix")
+	original := writeClipboardText
+	t.Cleanup(func() {
+		writeClipboardText = original
+	})
+
+	var copied string
+	writeClipboardText = func(content string) error {
+		copied = content
+		return nil
+	}
+
+	model := New(config.Config{NotesPath: tmpDir}, "", "test")
+	model.openEditor(notePath, "draft.md")
+	model.jumpEditorTo(0, 10)
+
+	model = updateModel(t, model, tea.KeyMsg{Type: tea.KeyCtrlK})
+
+	if copied != "copied value" {
+		t.Fatalf("copied = %q, want %q", copied, "copied value")
+	}
+	if model.status != "Copied code to clipboard" {
+		t.Fatalf("status = %q, want %q", model.status, "Copied code to clipboard")
+	}
+	if model.isError {
+		t.Fatalf("isError = true, want false")
+	}
+}
+
+func TestUpdateCtrlKCopiesFencedCodeBlockAtCursor(t *testing.T) {
+	tmpDir := t.TempDir()
+	notePath := writeTestNote(t, tmpDir, "draft.md", "```go\nfmt.Println(\"hi\")\nfmt.Println(\"bye\")\n```")
+	original := writeClipboardText
+	t.Cleanup(func() {
+		writeClipboardText = original
+	})
+
+	var copied string
+	writeClipboardText = func(content string) error {
+		copied = content
+		return nil
+	}
+
+	model := New(config.Config{NotesPath: tmpDir}, "", "test")
+	model.openEditor(notePath, "draft.md")
+	model.jumpEditorTo(1, 4)
+
+	model = updateModel(t, model, tea.KeyMsg{Type: tea.KeyCtrlK})
+
+	if copied != "fmt.Println(\"hi\")\nfmt.Println(\"bye\")" {
+		t.Fatalf("copied = %q, want full block content", copied)
+	}
+	if model.status != "Copied code to clipboard" {
+		t.Fatalf("status = %q, want %q", model.status, "Copied code to clipboard")
+	}
+	if model.isError {
+		t.Fatalf("isError = true, want false")
+	}
+}
+
+func TestUpdateCtrlKOutsideCodeShowsError(t *testing.T) {
+	tmpDir := t.TempDir()
+	notePath := writeTestNote(t, tmpDir, "draft.md", "plain text only")
+	original := writeClipboardText
+	t.Cleanup(func() {
+		writeClipboardText = original
+	})
+
+	called := false
+	writeClipboardText = func(content string) error {
+		called = true
+		return nil
+	}
+
+	model := New(config.Config{NotesPath: tmpDir}, "", "test")
+	model.openEditor(notePath, "draft.md")
+	model.jumpEditorTo(0, 3)
+
+	model = updateModel(t, model, tea.KeyMsg{Type: tea.KeyCtrlK})
+
+	if called {
+		t.Fatalf("writeClipboardText should not be called outside code")
+	}
+	if model.status != "cursor is not inside Markdown code" {
+		t.Fatalf("status = %q, want %q", model.status, "cursor is not inside Markdown code")
+	}
+	if !model.isError {
+		t.Fatalf("isError = false, want true")
+	}
+}
+
 func TestUpdateCtrlERendersHTMLAndOpensIt(t *testing.T) {
 	tmpDir := t.TempDir()
 	notePath := writeTestNote(t, tmpDir, "draft.md", "# Before")
@@ -556,7 +649,7 @@ func TestCtrlHOpensAndClosesEditorHelpDialog(t *testing.T) {
 	}
 
 	dialog := model.dialogView()
-	for _, shortcut := range []string{"Esc", "Ctrl+A", "Ctrl+H", "Ctrl+P", "Ctrl+T", "Ctrl+E", "Ctrl+L", "Ctrl+D"} {
+	for _, shortcut := range []string{"Esc", "Ctrl+A", "Ctrl+H", "Ctrl+P", "Ctrl+T", "Ctrl+K", "Ctrl+E", "Ctrl+L", "Ctrl+D"} {
 		if !strings.Contains(dialog, shortcut) {
 			t.Fatalf("editorHelpDialog() missing %q: %q", shortcut, dialog)
 		}

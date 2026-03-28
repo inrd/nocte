@@ -5,6 +5,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strings"
 )
 
 func openPath(path string) error {
@@ -33,6 +34,20 @@ func openURL(rawURL string) error {
 	return command.Process.Release()
 }
 
+func copyToClipboard(content string) error {
+	command, err := clipboardCommand(runtime.GOOS)
+	if err != nil {
+		return err
+	}
+
+	command.Stdin = strings.NewReader(content)
+	if err := command.Run(); err != nil {
+		return fmt.Errorf("could not copy to clipboard: %w", err)
+	}
+
+	return nil
+}
+
 func openCommand(goos string, path string) (*exec.Cmd, error) {
 	cleanPath := filepath.Clean(path)
 
@@ -56,6 +71,28 @@ func openURLCommand(goos string, rawURL string) (*exec.Cmd, error) {
 		return exec.Command("xdg-open", rawURL), nil
 	case "windows":
 		return exec.Command("explorer", rawURL), nil
+	default:
+		return nil, fmt.Errorf("unsupported platform: %s", goos)
+	}
+}
+
+func clipboardCommand(goos string) (*exec.Cmd, error) {
+	switch goos {
+	case "darwin":
+		return exec.Command("pbcopy"), nil
+	case "linux":
+		for _, candidate := range [][]string{
+			{"wl-copy"},
+			{"xclip", "-selection", "clipboard"},
+			{"xsel", "--clipboard", "--input"},
+		} {
+			if _, err := lookPath(candidate[0]); err == nil {
+				return exec.Command(candidate[0], candidate[1:]...), nil
+			}
+		}
+		return nil, fmt.Errorf("clipboard support requires wl-copy, xclip, or xsel")
+	case "windows":
+		return exec.Command("cmd", "/c", "clip"), nil
 	default:
 		return nil, fmt.Errorf("unsupported platform: %s", goos)
 	}

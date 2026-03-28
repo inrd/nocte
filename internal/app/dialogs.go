@@ -56,6 +56,7 @@ func editorHelpDialog() string {
 		lipgloss.JoinHorizontal(lipgloss.Left, keyHintStyle.Render("Ctrl+H"), helpStyle.Render("  Show this help dialog")),
 		lipgloss.JoinHorizontal(lipgloss.Left, keyHintStyle.Render("Ctrl+P"), helpStyle.Render("  Toggle the Markdown preview")),
 		lipgloss.JoinHorizontal(lipgloss.Left, keyHintStyle.Render("Ctrl+T"), helpStyle.Render("  Toggle the current line as a task")),
+		lipgloss.JoinHorizontal(lipgloss.Left, keyHintStyle.Render("Ctrl+K"), helpStyle.Render("  Copy the current inline or block code")),
 		lipgloss.JoinHorizontal(lipgloss.Left, keyHintStyle.Render("Ctrl+E"), helpStyle.Render("  Export the current note to HTML")),
 		lipgloss.JoinHorizontal(lipgloss.Left, keyHintStyle.Render("Ctrl+L"), helpStyle.Render("  List links in the current note")),
 		lipgloss.JoinHorizontal(lipgloss.Left, keyHintStyle.Render("Ctrl+D"), helpStyle.Render("  Delete the current note")),

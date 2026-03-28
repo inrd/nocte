@@ -240,6 +240,106 @@ func (m *Model) toggleEditorTask() {
 	m.jumpEditorTo(line, column)
 }
 
+func (m *Model) copyCodeAtCursor() error {
+	content, ok := m.codeContentAtCursor()
+	if !ok {
+		return errors.New("cursor is not inside Markdown code")
+	}
+
+	if err := writeClipboardText(content); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m Model) codeContentAtCursor() (string, bool) {
+	lines := strings.Split(m.editor.Value(), "\n")
+	lineIndex := m.editor.Line()
+	if lineIndex < 0 || lineIndex >= len(lines) {
+		return "", false
+	}
+
+	if content, ok := codeBlockContentAtLine(lines, lineIndex); ok {
+		return content, true
+	}
+
+	column := m.editor.LineInfo().CharOffset
+	return inlineCodeContentAtColumn(lines[lineIndex], column)
+}
+
+func codeBlockContentAtLine(lines []string, target int) (string, bool) {
+	inCodeBlock := false
+	blockStart := -1
+
+	for i, line := range lines {
+		if strings.HasPrefix(strings.TrimSpace(line), "```") {
+			if inCodeBlock {
+				if target > blockStart && target < i {
+					return strings.Join(lines[blockStart+1:i], "\n"), true
+				}
+				inCodeBlock = false
+				blockStart = -1
+				continue
+			}
+
+			inCodeBlock = true
+			blockStart = i
+		}
+	}
+
+	if inCodeBlock && target > blockStart {
+		return strings.Join(lines[blockStart+1:], "\n"), true
+	}
+
+	return "", false
+}
+
+func inlineCodeContentAtColumn(line string, column int) (string, bool) {
+	runes := []rune(line)
+	if len(runes) == 0 {
+		return "", false
+	}
+
+	column = max(0, min(column, len(runes)))
+	for i := 0; i < len(runes); i++ {
+		if runes[i] != '`' {
+			continue
+		}
+
+		delimiterWidth := 1
+		for i+delimiterWidth < len(runes) && runes[i+delimiterWidth] == '`' {
+			delimiterWidth++
+		}
+
+		closeIndex := -1
+		for j := i + delimiterWidth; j < len(runes); j++ {
+			matched := true
+			for k := 0; k < delimiterWidth; k++ {
+				if j+k >= len(runes) || runes[j+k] != '`' {
+					matched = false
+					break
+				}
+			}
+			if matched {
+				closeIndex = j
+				break
+			}
+		}
+		if closeIndex < 0 {
+			break
+		}
+
+		if column > i && column < closeIndex+delimiterWidth {
+			return string(runes[i+delimiterWidth : closeIndex]), true
+		}
+
+		i = closeIndex + delimiterWidth - 1
+	}
+
+	return "", false
+}
+
 func toggleTaskLine(line string, column int) (string, int) {
 	trimmed := strings.TrimLeftFunc(line, unicode.IsSpace)
 	indent := line[:len(line)-len(trimmed)]

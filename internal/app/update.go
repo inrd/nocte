@@ -184,6 +184,15 @@ func (m Model) updateEditorKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "ctrl+l":
 		m.openLinksDialog()
 		return m, nil
+	case "ctrl+k":
+		if err := m.copyCodeAtCursor(); err != nil {
+			m.status = err.Error()
+			m.isError = true
+			return m, nil
+		}
+		m.status = "Copied code to clipboard"
+		m.isError = false
+		return m, nil
 	case "ctrl+d":
 		m.activeDialog = "delete-confirm"
 		m.status = ""

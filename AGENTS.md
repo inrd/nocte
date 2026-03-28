@@ -56,6 +56,7 @@ Prefer a single `Usage` section in `README.md` over separate feature and how-to 
 - The editor can show a toggleable live Markdown preview, controlled by keyboard shortcut and documented below the editor, including headings, links, inline code, bold, italics, strikethrough, task lists, and nested Markdown list indentation.
 - Pressing `Tab` in the editor should insert spaces for Markdown indentation instead of moving focus, using a configurable tab width that defaults to 4 spaces.
 - Pressing `Ctrl+T` in the editor should toggle the current line between checked and unchecked Markdown task states, and should turn a non-task line into an open task.
+- Pressing `Ctrl+K` in the editor while the cursor is inside inline code or a fenced code block should copy that code content to the system clipboard.
 - Pressing `Ctrl+E` in the editor should render the current note to an HTML file inside an `html` subdirectory of the main notes directory and open that rendered file in the default web browser.
 - The HTML export should stay broadly aligned with the editor's Markdown preview for the currently supported Markdown subset, but it does not need to behave like a full publishing-grade Markdown renderer.
 - Markdown image lines like `![alt](./image.png)` should render local image previews through `chafa` when it is available, and otherwise fall back to readable image label/path text.
