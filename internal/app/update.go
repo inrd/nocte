@@ -168,6 +168,9 @@ func (m Model) updateEditorKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "tab":
 		m.indentEditorLine()
 		return m, nil
+	case "shift+tab":
+		m.unindentEditorLine()
+		return m, nil
 	case "ctrl+a":
 		m.discardEditor()
 		return m, nil

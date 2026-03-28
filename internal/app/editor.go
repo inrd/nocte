@@ -254,6 +254,24 @@ func (m *Model) indentEditorLine() {
 	m.jumpEditorTo(line, column+len([]rune(indent)))
 }
 
+func (m *Model) unindentEditorLine() {
+	lines := strings.Split(m.editor.Value(), "\n")
+	line := m.editor.Line()
+	if line < 0 || line >= len(lines) {
+		return
+	}
+
+	indentWidth := min(leadingSpaceCount(lines[line]), m.config.TabWidth)
+	if indentWidth == 0 {
+		return
+	}
+
+	column := m.editor.LineInfo().CharOffset
+	lines[line] = lines[line][indentWidth:]
+	m.editor.SetValue(strings.Join(lines, "\n"))
+	m.jumpEditorTo(line, max(0, column-indentWidth))
+}
+
 func (m *Model) copyCodeAtCursor() error {
 	content, ok := m.codeContentAtCursor()
 	if !ok {
@@ -391,4 +409,12 @@ func adjustTaskToggleColumn(column int, oldPrefixLen int, newPrefixLen int) int 
 		return newPrefixLen
 	}
 	return column + (newPrefixLen - oldPrefixLen)
+}
+
+func leadingSpaceCount(line string) int {
+	count := 0
+	for count < len(line) && line[count] == ' ' {
+		count++
+	}
+	return count
 }
