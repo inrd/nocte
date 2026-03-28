@@ -1,9 +1,9 @@
 Output "docs/demo/editor-demo.gif"
 
 Set Shell "zsh"
-Set FontSize 18
-Set Width 1200
-Set Height 700
+Set FontSize 16
+Set Width 1400
+Set Height 800
 Set TypingSpeed 260ms
 
 Hide

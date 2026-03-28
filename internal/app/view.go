@@ -39,11 +39,12 @@ func (m Model) View() string {
 		return docStyle.Render(content)
 	}
 
-	horizontal := lipgloss.PlaceHorizontal(m.width, lipgloss.Center, content)
-	vertical := lipgloss.PlaceVertical(m.height, lipgloss.Center, horizontal)
+	contentWidth, contentHeight := m.docContentSize()
+	horizontal := lipgloss.PlaceHorizontal(contentWidth, lipgloss.Center, content)
+	vertical := lipgloss.PlaceVertical(contentHeight, lipgloss.Center, horizontal)
 
 	if m.activeDialog != "" {
-		return docStyle.Render(strings.TrimRight(lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, m.dialogView()), "\n"))
+		return docStyle.Render(strings.TrimRight(lipgloss.Place(contentWidth, contentHeight, lipgloss.Center, lipgloss.Center, m.dialogView()), "\n"))
 	}
 
 	return docStyle.Render(strings.TrimRight(vertical, "\n"))
@@ -90,15 +91,17 @@ func (m Model) editorView() string {
 			return docStyle.Render(lipgloss.JoinVertical(lipgloss.Center, content, m.dialogView()))
 		}
 
-		return docStyle.Render(strings.TrimRight(lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, m.dialogView()), "\n"))
+		contentWidth, contentHeight := m.docContentSize()
+		return docStyle.Render(strings.TrimRight(lipgloss.Place(contentWidth, contentHeight, lipgloss.Center, lipgloss.Center, m.dialogView()), "\n"))
 	}
 
 	if m.width == 0 || m.height == 0 {
 		return docStyle.Render(content)
 	}
 
-	horizontal := lipgloss.PlaceHorizontal(m.width, lipgloss.Center, content)
-	vertical := lipgloss.PlaceVertical(m.height, lipgloss.Center, horizontal)
+	contentWidth, contentHeight := m.docContentSize()
+	horizontal := lipgloss.PlaceHorizontal(contentWidth, lipgloss.Center, content)
+	vertical := lipgloss.PlaceVertical(contentHeight, lipgloss.Center, horizontal)
 	return docStyle.Render(strings.TrimRight(vertical, "\n"))
 }
 
@@ -242,11 +245,18 @@ func (m Model) commandPaletteStyle() lipgloss.Style {
 func (m Model) searchPaletteStyle() lipgloss.Style {
 	width := defaultSearchPaletteWidth
 	if m.width > 0 {
-		width = min(maxSearchPaletteWidth, max(56, m.width-8))
+		availableWidth, _ := m.docContentSize()
+		width = min(maxSearchPaletteWidth, max(1, min(width, availableWidth)))
 	}
 
 	height := m.launcherPaletteContentBudget()
 	return commandPaletteStyle.Copy().Width(width).Height(height)
+}
+
+func (m Model) docContentSize() (int, int) {
+	width := max(1, m.width-docStyle.GetHorizontalFrameSize())
+	height := max(1, m.height-docStyle.GetVerticalFrameSize())
+	return width, height
 }
 
 func (m Model) commandVisibleRange(total int) (int, int) {

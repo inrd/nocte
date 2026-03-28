@@ -254,3 +254,15 @@ func TestLauncherViewReservesPaletteSpaceWhenInputIsEmpty(t *testing.T) {
 		t.Fatalf("View() missing empty launcher placeholder: %q", rendered)
 	}
 }
+
+func TestSearchPaletteStyleFitsWithinDocumentWidth(t *testing.T) {
+	model := New(config.Config{}, "", "test")
+	model.width = 52
+	model.height = 20
+
+	style := model.searchPaletteStyle()
+	contentWidth, _ := model.docContentSize()
+	if style.GetWidth() > contentWidth {
+		t.Fatalf("searchPaletteStyle().GetWidth() = %d, want <= %d", style.GetWidth(), contentWidth)
+	}
+}
