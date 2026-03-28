@@ -769,8 +769,8 @@ func TestRenderMarkdownHTMLDocumentRendersMarkdown(t *testing.T) {
 	if !strings.Contains(rendered, "<ul>") || !strings.Contains(rendered, "<li>item") {
 		t.Fatalf("renderMarkdownHTMLDocument() = %q, want list", rendered)
 	}
-	if !strings.Contains(rendered, "<input type=\"checkbox\" checked disabled> done") {
-		t.Fatalf("renderMarkdownHTMLDocument() = %q, want task list checkbox", rendered)
+	if !strings.Contains(rendered, "<li class=\"task-done\"><span class=\"task-checkbox\"><input type=\"checkbox\" checked disabled> </span>done") {
+		t.Fatalf("renderMarkdownHTMLDocument() = %q, want styled checked task item", rendered)
 	}
 	if !strings.Contains(rendered, "<code>code</code>") {
 		t.Fatalf("renderMarkdownHTMLDocument() = %q, want inline code", rendered)
@@ -786,6 +786,9 @@ func TestRenderMarkdownHTMLDocumentRendersMarkdown(t *testing.T) {
 	}
 	if !strings.Contains(rendered, "pre code{display:block;padding:0;border-radius:0;background:transparent;color:inherit;}") {
 		t.Fatalf("renderMarkdownHTMLDocument() = %q, want block code style reset", rendered)
+	}
+	if !strings.Contains(rendered, "li.task-done{color:#64748b;text-decoration:line-through;}") {
+		t.Fatalf("renderMarkdownHTMLDocument() = %q, want checked task CSS", rendered)
 	}
 }
 
@@ -886,6 +889,9 @@ func TestRenderMarkdownPreviewRendersTaskLists(t *testing.T) {
 	}
 	if strings.Contains(rendered, "[ ]") || strings.Contains(rendered, "[x]") {
 		t.Fatalf("renderMarkdownPreview() should hide raw task list markers: %q", rendered)
+	}
+	if !strings.Contains(rendered, previewCompletedTaskStyle.Render("  ☑ done item")) {
+		t.Fatalf("renderMarkdownPreview() should dim and strike checked tasks: %q", rendered)
 	}
 }
 

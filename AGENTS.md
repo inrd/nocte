@@ -54,6 +54,7 @@ Prefer a single `Usage` section in `README.md` over separate feature and how-to 
 - Leaving a newly created note empty and exiting the editor should delete that note instead of saving an empty file.
 - The initial note editor is plain text only, saves on close when content changed, and otherwise closes without rewriting the file.
 - The editor can show a toggleable live Markdown preview, controlled by keyboard shortcut and documented below the editor, including headings, links, inline code, bold, italics, strikethrough, task lists, and nested Markdown list indentation.
+- Checked Markdown task items should appear dimmed with a strikethrough effect in the editor preview, and the HTML export should style checked task items to match that completed-state treatment.
 - Pressing `Tab` in the editor should indent the start of the current line with spaces, and `Shift+Tab` should remove up to that configured leading indent width, instead of moving focus, while keeping the cursor at the same in-line content position after the indent change.
 - Pressing `Ctrl+T` in the editor should toggle the current line between checked and unchecked Markdown task states, and should turn a non-task line into an open task.
 - Pressing `Ctrl+K` in the editor while the cursor is inside inline code or a fenced code block should copy that code content to the system clipboard.

@@ -100,6 +100,10 @@ var (
 	previewMutedStyle = lipgloss.NewStyle().
 				Foreground(lipgloss.Color("8"))
 
+	previewCompletedTaskStyle = lipgloss.NewStyle().
+					Foreground(lipgloss.Color("8")).
+					Strikethrough(true)
+
 	previewInlineCodeStyle = lipgloss.NewStyle().
 				Foreground(lipgloss.Color("10"))
 

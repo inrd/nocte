@@ -97,7 +97,7 @@ func renderMarkdownHTMLDocument(noteName string, notePath string, content string
 		b.WriteString("\">\n")
 	}
 	b.WriteString("<style>\n")
-	b.WriteString("body{margin:0 auto;max-width:56rem;padding:2rem 1.25rem 4rem;font:16px/1.6 -apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif;color:#1f2933;background:#f8fafc;}h1,h2,h3,h4,h5,h6{line-height:1.25;color:#102a43;}a{color:#0f766e;}pre,code{font-family:\"SFMono-Regular\",Consolas,\"Liberation Mono\",Menlo,monospace;}pre{overflow-x:auto;padding:1rem;border-radius:.75rem;background:#0f172a;color:#e2e8f0;}pre code{display:block;padding:0;border-radius:0;background:transparent;color:inherit;}code{padding:.1rem .3rem;border-radius:.35rem;background:#e2e8f0;color:#0f172a;}blockquote{margin:1.25rem 0;padding:0 1rem;border-left:.3rem solid #94a3b8;color:#475569;}hr{border:0;border-top:1px solid #cbd5e1;margin:2rem 0;}img{max-width:100%;height:auto;border-radius:.5rem;}table{border-collapse:collapse;}ul,ol{padding-left:1.5rem;}li+li{margin-top:.35rem;}input[type=checkbox]{margin-right:.45rem;}main{background:#ffffff;border-radius:1rem;padding:1.5rem;box-shadow:0 10px 30px rgba(15,23,42,.08);}\n")
+	b.WriteString("body{margin:0 auto;max-width:56rem;padding:2rem 1.25rem 4rem;font:16px/1.6 -apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif;color:#1f2933;background:#f8fafc;}h1,h2,h3,h4,h5,h6{line-height:1.25;color:#102a43;}a{color:#0f766e;}pre,code{font-family:\"SFMono-Regular\",Consolas,\"Liberation Mono\",Menlo,monospace;}pre{overflow-x:auto;padding:1rem;border-radius:.75rem;background:#0f172a;color:#e2e8f0;}pre code{display:block;padding:0;border-radius:0;background:transparent;color:inherit;}code{padding:.1rem .3rem;border-radius:.35rem;background:#e2e8f0;color:#0f172a;}blockquote{margin:1.25rem 0;padding:0 1rem;border-left:.3rem solid #94a3b8;color:#475569;}hr{border:0;border-top:1px solid #cbd5e1;margin:2rem 0;}img{max-width:100%;height:auto;border-radius:.5rem;}table{border-collapse:collapse;}ul,ol{padding-left:1.5rem;}li+li{margin-top:.35rem;}input[type=checkbox]{margin-right:.45rem;}li.task-done{color:#64748b;text-decoration:line-through;}li.task-done input[type=checkbox]{accent-color:#64748b;}main{background:#ffffff;border-radius:1rem;padding:1.5rem;box-shadow:0 10px 30px rgba(15,23,42,.08);}\n")
 	b.WriteString("</style>\n")
 	b.WriteString("</head>\n<body>\n<main>\n")
 	b.WriteString(body)
@@ -263,6 +263,9 @@ func renderMarkdownHTMLBody(content string) string {
 				var marker string
 				indent, marker, content = parseTaskListLine(line)
 				prefix = taskCheckboxHTML(marker)
+				if isCheckedTaskMarker(marker) {
+					prefix = "<span class=\"task-checkbox\">" + prefix + "</span>"
+				}
 			case isBulletLine(line):
 				var markerWidth int
 				indent, markerWidth, content = parseBulletLine(line)
@@ -291,7 +294,11 @@ func renderMarkdownHTMLBody(content string) string {
 				lists[len(lists)-1].liOpened = false
 			}
 
-			b.WriteString("<li>")
+			if strings.Contains(prefix, "task-checkbox") {
+				b.WriteString("<li class=\"task-done\">")
+			} else {
+				b.WriteString("<li>")
+			}
 			b.WriteString(prefix)
 			b.WriteString(renderInlineMarkdownHTML(content))
 			lists[len(lists)-1].liOpened = true

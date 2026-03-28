@@ -129,7 +129,11 @@ func renderMarkdownPreviewLinesForNote(content string, notePath string, width in
 			indent, marker, content := parseTaskListLine(line)
 			prefix := strings.Repeat(" ", indent) + marker
 			continuationPrefix := strings.Repeat(" ", indent+ansi.StringWidth(marker))
-			rendered = appendPrefixedWrapped(rendered, lipgloss.NewStyle(), prefix, continuationPrefix, content, width)
+			style := lipgloss.NewStyle()
+			if isCheckedTaskMarker(marker) {
+				style = previewCompletedTaskStyle
+			}
+			rendered = appendPrefixedWrapped(rendered, style, prefix, continuationPrefix, content, width)
 		case isBulletLine(line):
 			indent, markerWidth, content := parseBulletLine(line)
 			prefix := strings.Repeat(" ", indent) + "• "
@@ -169,6 +173,10 @@ func appendPrefixedWrapped(lines []string, style lipgloss.Style, prefix string, 
 		lines = append(lines, style.Render(currentPrefix)+line)
 	}
 	return lines
+}
+
+func isCheckedTaskMarker(marker string) bool {
+	return strings.Contains(marker, "☑")
 }
 
 func wrapPreviewLine(content string, width int) []string {
