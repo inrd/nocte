@@ -48,7 +48,7 @@ func TestSanitizeFilename(t *testing.T) {
 
 func TestFindNoteMatchesFiltersSortsAndAddsMetadata(t *testing.T) {
 	tmpDir := t.TempDir()
-	writeTestNote(t, tmpDir, "meeting-notes.md", "hello there")
+	writeTestNote(t, tmpDir, "meeting-notes.md", "hello there\nsecond line")
 	writeTestNote(t, tmpDir, "math-notes.md", "123 456 789")
 	writeTestNote(t, tmpDir, "zebra.md", "z")
 	writeTestNote(t, tmpDir, "ignore.txt", "skip")
@@ -70,11 +70,14 @@ func TestFindNoteMatchesFiltersSortsAndAddsMetadata(t *testing.T) {
 	if matches[0].wordCount != 3 {
 		t.Fatalf("matches[0].wordCount = %d, want 3", matches[0].wordCount)
 	}
-	if matches[1].wordCount != 2 {
-		t.Fatalf("matches[1].wordCount = %d, want 2", matches[1].wordCount)
+	if matches[1].wordCount != 4 {
+		t.Fatalf("matches[1].wordCount = %d, want 4", matches[1].wordCount)
 	}
 	if matches[0].sizeBytes <= 0 {
 		t.Fatalf("matches[0].sizeBytes = %d, want > 0", matches[0].sizeBytes)
+	}
+	if got := matches[1].preview; len(got) != 2 || got[0] != "hello there" || got[1] != "second line" {
+		t.Fatalf("matches[1].preview = %v, want [hello there second line]", got)
 	}
 }
 
@@ -196,14 +199,14 @@ func TestUpdateEnterOpensSelectedExistingNote(t *testing.T) {
 
 func TestNotePaletteViewUsesScrollableViewport(t *testing.T) {
 	model := New(config.Config{}, "", "test")
-	model.height = 12
+	model.height = 16
 	model.noteMatches = []noteMatch{
-		{name: "one.md"},
-		{name: "two.md"},
-		{name: "three.md"},
-		{name: "four.md"},
-		{name: "five.md"},
-		{name: "six.md"},
+		{name: "one.md", preview: []string{"one a", "one b"}},
+		{name: "two.md", preview: []string{"two a", "two b"}},
+		{name: "three.md", preview: []string{"three a", "three b"}},
+		{name: "four.md", preview: []string{"four a", "four b"}},
+		{name: "five.md", preview: []string{"five a", "five b"}},
+		{name: "six.md", preview: []string{"six a", "six b"}},
 	}
 	model.noteIndex = len(model.noteMatches) - 1
 	model.syncNoteOffset()
@@ -216,8 +219,24 @@ func TestNotePaletteViewUsesScrollableViewport(t *testing.T) {
 	if !strings.Contains(rendered, "six.md") {
 		t.Fatalf("notePaletteView() missing tail item: %q", rendered)
 	}
+	if !strings.Contains(rendered, "six a") {
+		t.Fatalf("notePaletteView() missing preview line: %q", rendered)
+	}
 	if strings.Contains(rendered, "one.md") {
 		t.Fatalf("notePaletteView() should scroll past early items: %q", rendered)
+	}
+}
+
+func TestNotePaletteViewShowsCreateHintWhenNoMatches(t *testing.T) {
+	model := New(config.Config{}, "", "test")
+
+	rendered := model.notePaletteView()
+
+	if !strings.Contains(rendered, "No matching notes") {
+		t.Fatalf("notePaletteView() missing empty message: %q", rendered)
+	}
+	if !strings.Contains(rendered, "Press Enter to create a new note") {
+		t.Fatalf("notePaletteView() missing create hint: %q", rendered)
 	}
 }
 

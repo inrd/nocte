@@ -206,6 +206,7 @@ func (m Model) findNoteMatches(query string) []noteMatch {
 			wordCount: len(strings.Fields(string(content))),
 			sizeBytes: info.Size(),
 			modTime:   info.ModTime(),
+			preview:   notePreviewLines(string(content)),
 		})
 	}
 
@@ -238,22 +239,39 @@ func (m Model) findNoteMatches(query string) []noteMatch {
 }
 
 func (m *Model) syncNoteOffset() {
-	visible := m.launcherListVisibleCount()
-	if visible <= 0 {
+	if len(m.noteMatches) == 0 {
 		m.noteOffset = 0
 		return
 	}
 
-	maxOffset := max(0, len(m.noteMatches)-visible)
-	m.noteOffset = clampInt(m.noteOffset, 0, maxOffset)
+	budget := m.launcherPaletteContentBudget()
+	if len(m.noteMatches) > 1 {
+		budget--
+	}
+	if budget <= 0 {
+		m.noteOffset = 0
+		return
+	}
+
+	m.noteOffset = clampInt(m.noteOffset, 0, len(m.noteMatches)-1)
 	if m.noteIndex < 0 {
 		return
 	}
-	if m.noteIndex < m.noteOffset {
+
+	for m.noteIndex < m.noteOffset {
 		m.noteOffset = m.noteIndex
 	}
-	if m.noteIndex >= m.noteOffset+visible {
-		m.noteOffset = m.noteIndex - visible + 1
+
+	for {
+		start, end := m.noteVisibleRangeFrom(m.noteOffset)
+		if m.noteIndex >= start && m.noteIndex < end {
+			return
+		}
+		m.noteOffset++
+		if m.noteOffset >= len(m.noteMatches) {
+			m.noteOffset = len(m.noteMatches) - 1
+			return
+		}
 	}
 }
 
@@ -272,6 +290,28 @@ func (m Model) listNotes() []noteMatch {
 
 func noteMeta(note noteMatch) string {
 	return fmt.Sprintf("%d words | %s", note.wordCount, humanSize(note.sizeBytes))
+}
+
+func notePreviewLines(content string) []string {
+	lines := strings.Split(content, "\n")
+	preview := make([]string, 0, 2)
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+
+		preview = append(preview, line)
+		if len(preview) == 2 {
+			return preview
+		}
+	}
+
+	if len(preview) == 0 {
+		return []string{"Empty note"}
+	}
+
+	return preview
 }
 
 func (m *Model) closeDialog() {

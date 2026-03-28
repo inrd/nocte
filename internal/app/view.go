@@ -148,7 +148,7 @@ func (m Model) commandPaletteView() string {
 	}
 
 	if len(matches) > 1 {
-		lines = append(lines, helpStyle.Render(fmt.Sprintf("Showing %d-%d of %d", start+1, end, len(matches))))
+		lines = append(lines, metaStyle.Render(fmt.Sprintf("Showing %d-%d of %d", start+1, end, len(matches))))
 	}
 
 	return style.Render(strings.Join(lines, "\n"))
@@ -172,16 +172,21 @@ func commandPaletteLine(command command) string {
 }
 
 func (m Model) notePaletteView() string {
-	style := m.commandPaletteStyle()
+	style := m.searchPaletteStyle()
 	if len(m.noteMatches) == 0 {
-		return style.Render(helpStyle.Render("No matching notes"))
+		return style.Render(lipgloss.JoinVertical(
+			lipgloss.Left,
+			helpStyle.Render("No matching notes"),
+			helpStyle.Render("Press Enter to create a new note"),
+		))
 	}
 
 	start, end := m.noteVisibleRange()
 	lines := make([]string, 0, end-start+1)
+	contentWidth := style.GetWidth() - style.GetHorizontalFrameSize()
 	for i := start; i < end; i++ {
 		note := m.noteMatches[i]
-		line := note.name
+		line := m.notePaletteRow(note, contentWidth)
 		if i == m.noteIndex {
 			lines = append(lines, commandSelectedStyle.Render(line))
 			continue
@@ -191,7 +196,7 @@ func (m Model) notePaletteView() string {
 	}
 
 	if len(m.noteMatches) > 1 {
-		lines = append(lines, helpStyle.Render(fmt.Sprintf("Showing %d-%d of %d", start+1, end, len(m.noteMatches))))
+		lines = append(lines, metaStyle.Render(fmt.Sprintf("Showing %d-%d of %d", start+1, end, len(m.noteMatches))))
 	}
 
 	return style.Render(strings.Join(lines, "\n"))
@@ -223,7 +228,7 @@ func (m Model) searchPaletteView() string {
 		rows = append(rows, row)
 	}
 	if len(m.searchMatches) > 1 {
-		rows = append(rows, helpStyle.Render(fmt.Sprintf("Showing %d-%d of %d", start+1, end, len(m.searchMatches))))
+		rows = append(rows, metaStyle.Render(fmt.Sprintf("Showing %d-%d of %d", start+1, end, len(m.searchMatches))))
 	}
 
 	return style.Render(strings.Join(rows, "\n"))
@@ -244,21 +249,12 @@ func (m Model) searchPaletteStyle() lipgloss.Style {
 	return commandPaletteStyle.Copy().Width(width).Height(height)
 }
 
-func (m Model) launcherListVisibleCount() int {
-	budget := m.launcherPaletteContentBudget()
-	if budget <= 1 {
-		return 1
-	}
-
-	return budget - 1
-}
-
 func (m Model) commandVisibleRange(total int) (int, int) {
 	if total == 0 {
 		return 0, 0
 	}
 
-	visible := m.launcherListVisibleCount()
+	visible := m.launcherCommandListVisibleCount()
 	if visible <= 0 || total <= visible {
 		return 0, total
 	}
@@ -268,17 +264,67 @@ func (m Model) commandVisibleRange(total int) (int, int) {
 }
 
 func (m Model) noteVisibleRange() (int, int) {
+	return m.noteVisibleRangeFrom(m.noteOffset)
+}
+
+func (m Model) noteVisibleRangeFrom(start int) (int, int) {
 	if len(m.noteMatches) == 0 {
 		return 0, 0
 	}
 
-	visible := m.launcherListVisibleCount()
-	if visible <= 0 || len(m.noteMatches) <= visible {
-		return 0, len(m.noteMatches)
+	start = clampInt(start, 0, len(m.noteMatches)-1)
+	budget := m.launcherPaletteContentBudget()
+	if len(m.noteMatches) > 1 {
+		budget--
+	}
+	if budget < 1 {
+		budget = 1
 	}
 
-	start := clampInt(m.noteOffset, 0, len(m.noteMatches)-visible)
-	return start, min(len(m.noteMatches), start+visible)
+	used := 0
+	end := start
+	for end < len(m.noteMatches) {
+		rowHeight := noteMatchHeight(m.noteMatches[end])
+		if used > 0 && used+rowHeight > budget {
+			break
+		}
+		if used == 0 && rowHeight > budget {
+			end++
+			break
+		}
+		used += rowHeight
+		end++
+	}
+
+	if end == start {
+		end = min(len(m.noteMatches), start+1)
+	}
+
+	return start, end
+}
+
+func (m Model) launcherCommandListVisibleCount() int {
+	budget := m.launcherPaletteContentBudget()
+	if budget <= 1 {
+		return 1
+	}
+
+	return budget - 1
+}
+
+func (m Model) notePaletteRow(note noteMatch, contentWidth int) string {
+	title := searchNameStyle.Render(truncateText(note.name, contentWidth))
+	snippetWidth := max(16, contentWidth)
+	lines := []string{title}
+	for _, previewLine := range note.preview {
+		lines = append(lines, searchSnippetStyle.Render(truncateText(previewLine, snippetWidth)))
+	}
+
+	return strings.Join(lines, "\n")
+}
+
+func noteMatchHeight(note noteMatch) int {
+	return 1 + len(note.preview)
 }
 
 func (m Model) searchPaletteRow(match searchMatch, contentWidth int) string {

@@ -189,7 +189,7 @@ func (m *Model) moveCommandSelection(delta int) {
 }
 
 func (m *Model) syncCommandOffset() {
-	visible := m.launcherListVisibleCount()
+	visible := m.launcherCommandListVisibleCount()
 	if visible <= 0 {
 		m.commandOffset = 0
 		return

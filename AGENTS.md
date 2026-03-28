@@ -32,6 +32,8 @@ Prefer a single `Usage` section in `README.md` over separate feature and how-to 
 
 - New notes are created from the main input.
 - Typing a note name in the main input should show a fuzzy note-search palette for existing notes.
+- Default note-search results should show the note name with a dimmed two-line preview below it, matching the general shape of the full-text search and `:todo` palettes.
+- When the default note-search palette has no matches, it should explicitly remind the user that pressing `Enter` creates a new note.
 - Typing `/` followed by a query in the main input should show a selectable full-text search palette with one row per match, including the note name and a dimmed multi-line snippet around the match.
 - The launcher input should stay visually anchored while note, command, and search palettes update below it, including the empty launcher state before typing.
 - Launcher note, command, `/` search, and `:todo` palettes should stay within the current terminal window and use scrolling instead of growing without bound.

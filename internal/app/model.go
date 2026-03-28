@@ -181,6 +181,7 @@ type noteMatch struct {
 	wordCount int
 	sizeBytes int64
 	modTime   time.Time
+	preview   []string
 }
 
 type noteLink struct {
