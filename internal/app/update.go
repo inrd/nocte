@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -167,7 +166,7 @@ func (m Model) updateEditorKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	switch msg.String() {
 	case "tab":
-		m.editor.InsertString(strings.Repeat(" ", m.config.TabWidth))
+		m.indentEditorLine()
 		return m, nil
 	case "ctrl+a":
 		m.discardEditor()

@@ -240,6 +240,20 @@ func (m *Model) toggleEditorTask() {
 	m.jumpEditorTo(line, column)
 }
 
+func (m *Model) indentEditorLine() {
+	lines := strings.Split(m.editor.Value(), "\n")
+	line := m.editor.Line()
+	if line < 0 || line >= len(lines) {
+		return
+	}
+
+	indent := strings.Repeat(" ", m.config.TabWidth)
+	column := m.editor.LineInfo().CharOffset
+	lines[line] = indent + lines[line]
+	m.editor.SetValue(strings.Join(lines, "\n"))
+	m.jumpEditorTo(line, column+len([]rune(indent)))
+}
+
 func (m *Model) copyCodeAtCursor() error {
 	content, ok := m.codeContentAtCursor()
 	if !ok {

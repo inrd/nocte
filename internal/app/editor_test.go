@@ -322,6 +322,24 @@ func TestUpdateTabUsesConfiguredIndentWidth(t *testing.T) {
 	}
 }
 
+func TestUpdateTabIndentsCurrentLineWhenCursorIsInsideContent(t *testing.T) {
+	tmpDir := t.TempDir()
+	notePath := writeTestNote(t, tmpDir, "draft.md", "alpha beta")
+
+	model := New(config.Config{NotesPath: tmpDir}, "", "test")
+	model.openEditor(notePath, "draft.md")
+	model.jumpEditorTo(0, 7)
+
+	model = updateModel(t, model, tea.KeyMsg{Type: tea.KeyTab})
+
+	if got := model.editor.Value(); got != "    alpha beta" {
+		t.Fatalf("editor.Value() = %q, want %q", got, "    alpha beta")
+	}
+	if got := model.editor.LineInfo().CharOffset; got != 11 {
+		t.Fatalf("editor.LineInfo().CharOffset = %d, want %d", got, 11)
+	}
+}
+
 func TestUpdateCtrlKCopiesInlineCodeAtCursor(t *testing.T) {
 	tmpDir := t.TempDir()
 	notePath := writeTestNote(t, tmpDir, "draft.md", "prefix `copied value` suffix")
