@@ -108,11 +108,6 @@ func (m Model) updateKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 func (m Model) updateEditorKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	if m.activeDialog == "links" {
 		switch msg.String() {
-		case "ctrl+c":
-			if shouldQuit := m.finishEditing("quit"); shouldQuit {
-				return m, tea.Quit
-			}
-			return m, nil
 		case "ctrl+l":
 			m.closeDialog()
 			return m, nil
@@ -143,12 +138,8 @@ func (m Model) updateEditorKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	if m.activeDialog == "save-error" {
 		switch msg.String() {
-		case "ctrl+c", "enter":
-			action := m.editorAction
+		case "enter":
 			m.discardEditor()
-			if action == "quit" {
-				return m, tea.Quit
-			}
 			return m, nil
 		case "esc":
 			m.closeDialog()
@@ -159,14 +150,6 @@ func (m Model) updateEditorKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	if m.activeDialog == "delete-confirm" {
 		switch msg.String() {
-		case "ctrl+c":
-			if err := m.deleteEditorNote(); err != nil {
-				m.activeDialog = ""
-				m.status = err.Error()
-				m.isError = true
-				return m, nil
-			}
-			return m, tea.Quit
 		case "enter":
 			if err := m.deleteEditorNote(); err != nil {
 				m.activeDialog = ""
@@ -185,6 +168,9 @@ func (m Model) updateEditorKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case "tab":
 		m.editor.InsertString(strings.Repeat(" ", m.config.TabWidth))
+		return m, nil
+	case "ctrl+a":
+		m.discardEditor()
 		return m, nil
 	case "ctrl+e":
 		if err := m.exportEditorHTML(); err != nil {
@@ -210,11 +196,6 @@ func (m Model) updateEditorKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case "ctrl+p":
 		m.togglePreview()
-		return m, nil
-	case "ctrl+c":
-		if shouldQuit := m.finishEditing("quit"); shouldQuit {
-			return m, tea.Quit
-		}
 		return m, nil
 	case "esc":
 		m.finishEditing("close")

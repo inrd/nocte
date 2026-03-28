@@ -67,8 +67,8 @@ func (m Model) editorView() string {
 		lipgloss.Left,
 		keyHintStyle.Render("Esc"),
 		helpStyle.Render(" save & close  "),
-		keyHintStyle.Render("Ctrl+C"),
-		helpStyle.Render(" save & quit  "),
+		keyHintStyle.Render("Ctrl+A"),
+		helpStyle.Render(" discard  "),
 		keyHintStyle.Render("Ctrl+H"),
 		helpStyle.Render(" help"),
 	)

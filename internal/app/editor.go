@@ -69,7 +69,6 @@ func (m *Model) closeEditor(saved bool) {
 
 func (m *Model) discardEditor() {
 	name := m.editorName
-	action := m.editorAction
 	m.editorPath = ""
 	m.editorName = ""
 	m.lastSaved = ""
@@ -81,11 +80,7 @@ func (m *Model) discardEditor() {
 	m.input.SetValue("")
 	m.input.Focus()
 	m.syncLauncherState()
-	if action == "quit" {
-		m.status = fmt.Sprintf("Discarded changes in %s and quit", name)
-	} else {
-		m.status = fmt.Sprintf("Discarded changes in %s", name)
-	}
+	m.status = fmt.Sprintf("Discarded changes in %s", name)
 	m.isError = false
 }
 
@@ -176,10 +171,6 @@ func (m *Model) finishEditing(action string) bool {
 	}
 	if discarded {
 		name := m.editorName
-		if action == "quit" {
-			m.editorAction = ""
-			return true
-		}
 		m.closeEditor(false)
 		m.status = fmt.Sprintf("Discarded empty note %s", name)
 		return false
@@ -192,11 +183,6 @@ func (m *Model) finishEditing(action string) bool {
 		m.status = err.Error()
 		m.isError = true
 		return false
-	}
-
-	if action == "quit" {
-		m.editorAction = ""
-		return true
 	}
 
 	m.closeEditor(saved)

@@ -52,7 +52,7 @@ func helpDialog() string {
 func editorHelpDialog() string {
 	rows := []string{
 		lipgloss.JoinHorizontal(lipgloss.Left, keyHintStyle.Render("Esc"), helpStyle.Render("     Save and close the editor")),
-		lipgloss.JoinHorizontal(lipgloss.Left, keyHintStyle.Render("Ctrl+C"), helpStyle.Render("  Save and quit the app")),
+		lipgloss.JoinHorizontal(lipgloss.Left, keyHintStyle.Render("Ctrl+A"), helpStyle.Render("  Discard changes and return to the launcher")),
 		lipgloss.JoinHorizontal(lipgloss.Left, keyHintStyle.Render("Ctrl+H"), helpStyle.Render("  Show this help dialog")),
 		lipgloss.JoinHorizontal(lipgloss.Left, keyHintStyle.Render("Ctrl+P"), helpStyle.Render("  Toggle the Markdown preview")),
 		lipgloss.JoinHorizontal(lipgloss.Left, keyHintStyle.Render("Ctrl+T"), helpStyle.Render("  Toggle the current line as a task")),
@@ -135,10 +135,6 @@ func (m Model) saveErrorDialog() string {
 		"",
 		"Press Enter to discard your unsaved changes.",
 		"Press Esc to return to the editor.",
-	}
-
-	if m.editorAction == "quit" {
-		lines[4] = "Press Enter to discard your unsaved changes and quit."
 	}
 
 	return dialogStyle.Render(lipgloss.JoinVertical(lipgloss.Left, lines...))

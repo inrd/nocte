@@ -143,6 +143,49 @@ func TestUpdateEscKeepsExistingEmptyNote(t *testing.T) {
 	}
 }
 
+func TestUpdateCtrlQDoesNotExitEditor(t *testing.T) {
+	tmpDir := t.TempDir()
+	notePath := writeTestNote(t, tmpDir, "draft.md", "before")
+
+	model := New(config.Config{NotesPath: tmpDir}, "", "test")
+	model.openEditor(notePath, "draft.md")
+
+	model = updateModel(t, model, tea.KeyMsg{Type: tea.KeyCtrlQ})
+
+	if !model.isEditing() {
+		t.Fatalf("model should remain in the editor after Ctrl+Q")
+	}
+	if model.status != "Editing draft.md" {
+		t.Fatalf("status = %q, want %q", model.status, "Editing draft.md")
+	}
+}
+
+func TestUpdateCtrlADiscardsChangesAndReturnsToLauncher(t *testing.T) {
+	tmpDir := t.TempDir()
+	notePath := writeTestNote(t, tmpDir, "draft.md", "before")
+
+	model := New(config.Config{NotesPath: tmpDir}, "", "test")
+	model.openEditor(notePath, "draft.md")
+	model.editor.SetValue("after")
+
+	model = updateModel(t, model, tea.KeyMsg{Type: tea.KeyCtrlA})
+
+	if model.isEditing() {
+		t.Fatalf("model should leave the editor after Ctrl+A")
+	}
+	if model.status != "Discarded changes in draft.md" {
+		t.Fatalf("status = %q, want %q", model.status, "Discarded changes in draft.md")
+	}
+
+	data, err := os.ReadFile(notePath)
+	if err != nil {
+		t.Fatalf("ReadFile(%q) error = %v", notePath, err)
+	}
+	if string(data) != "before" {
+		t.Fatalf("saved content = %q, want %q", string(data), "before")
+	}
+}
+
 func TestUpdateCtrlPTogglesPreviewWhileEditing(t *testing.T) {
 	tmpDir := t.TempDir()
 	notePath := writeTestNote(t, tmpDir, "draft.md", "# Title\n\n- item")
@@ -485,8 +528,11 @@ func TestEditorViewShowsMarkdownPreviewWhenVisible(t *testing.T) {
 	if !strings.Contains(view, "Preview (read-only)") {
 		t.Fatalf("editorView() missing preview label: %q", view)
 	}
-	if !strings.Contains(view, "Esc") || !strings.Contains(view, "Ctrl+C") || !strings.Contains(view, "Ctrl+H") {
+	if !strings.Contains(view, "Esc") || !strings.Contains(view, "Ctrl+A") || !strings.Contains(view, "Ctrl+H") {
 		t.Fatalf("editorView() missing compact shortcut help: %q", view)
+	}
+	if strings.Contains(view, "Ctrl+C") || strings.Contains(view, "Ctrl+Q") {
+		t.Fatalf("editorView() should not show quit shortcuts: %q", view)
 	}
 	if strings.Contains(view, "Ctrl+P") || strings.Contains(view, "Ctrl+T") || strings.Contains(view, "Ctrl+E") || strings.Contains(view, "Ctrl+L") || strings.Contains(view, "Ctrl+D") {
 		t.Fatalf("editorView() should keep non-exit shortcuts in the help dialog only: %q", view)
@@ -510,9 +556,14 @@ func TestCtrlHOpensAndClosesEditorHelpDialog(t *testing.T) {
 	}
 
 	dialog := model.dialogView()
-	for _, shortcut := range []string{"Esc", "Ctrl+C", "Ctrl+H", "Ctrl+P", "Ctrl+T", "Ctrl+E", "Ctrl+L", "Ctrl+D"} {
+	for _, shortcut := range []string{"Esc", "Ctrl+A", "Ctrl+H", "Ctrl+P", "Ctrl+T", "Ctrl+E", "Ctrl+L", "Ctrl+D"} {
 		if !strings.Contains(dialog, shortcut) {
 			t.Fatalf("editorHelpDialog() missing %q: %q", shortcut, dialog)
+		}
+	}
+	for _, shortcut := range []string{"Ctrl+C", "Ctrl+Q"} {
+		if strings.Contains(dialog, shortcut) {
+			t.Fatalf("editorHelpDialog() should not include %q: %q", shortcut, dialog)
 		}
 	}
 	if strings.Contains(dialog, "Tab") {

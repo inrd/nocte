@@ -49,6 +49,8 @@ export PATH="$HOME/.local/bin:$PATH"
 ### Editor
 
 - Edit notes in a plain text editor and save on exit when content changed
+- Press `Esc` to save and return to the launcher
+- Press `Ctrl+A` to discard editor changes and return to the launcher
 - Press `Ctrl+P` to toggle the live Markdown preview for headings, lists, task lists, links, inline code, bold, italics, and strikethrough
 - Press `Ctrl+T` to toggle the current line between open and checked Markdown task states, or turn a non-task line into an open task
 - Press `Ctrl+E` to render the current note to `html/<note>.html` under your notes directory and open it in your default browser
