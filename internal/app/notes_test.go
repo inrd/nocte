@@ -48,7 +48,7 @@ func TestSanitizeFilename(t *testing.T) {
 
 func TestFindNoteMatchesFiltersSortsAndAddsMetadata(t *testing.T) {
 	tmpDir := t.TempDir()
-	writeTestNote(t, tmpDir, "meeting-notes.md", "hello there\nsecond line")
+	writeTestNote(t, tmpDir, "meeting-notes.md", "hello there\n- [x] second line")
 	writeTestNote(t, tmpDir, "math-notes.md", "123 456 789")
 	writeTestNote(t, tmpDir, "zebra.md", "z")
 	writeTestNote(t, tmpDir, "ignore.txt", "skip")
@@ -70,14 +70,17 @@ func TestFindNoteMatchesFiltersSortsAndAddsMetadata(t *testing.T) {
 	if matches[0].wordCount != 3 {
 		t.Fatalf("matches[0].wordCount = %d, want 3", matches[0].wordCount)
 	}
-	if matches[1].wordCount != 4 {
-		t.Fatalf("matches[1].wordCount = %d, want 4", matches[1].wordCount)
+	if matches[1].wordCount != 6 {
+		t.Fatalf("matches[1].wordCount = %d, want 6", matches[1].wordCount)
 	}
 	if matches[0].sizeBytes <= 0 {
 		t.Fatalf("matches[0].sizeBytes = %d, want > 0", matches[0].sizeBytes)
 	}
-	if got := matches[1].preview; len(got) != 2 || got[0] != "hello there" || got[1] != "second line" {
-		t.Fatalf("matches[1].preview = %v, want [hello there second line]", got)
+	if matches[1].taskDone != 1 || matches[1].taskTotal != 1 {
+		t.Fatalf("matches[1] task progress = (%d, %d), want (1, 1)", matches[1].taskDone, matches[1].taskTotal)
+	}
+	if got := matches[1].preview; len(got) != 2 || got[0] != "hello there" || got[1] != "- [x] second line" {
+		t.Fatalf("matches[1].preview = %v, want [hello there - [x] second line]", got)
 	}
 }
 

@@ -199,6 +199,7 @@ func (m Model) findNoteMatches(query string) []noteMatch {
 		if err != nil {
 			continue
 		}
+		taskDone, taskTotal := countTaskProgress(string(content))
 
 		matches = append(matches, noteMatch{
 			name:      name,
@@ -206,6 +207,8 @@ func (m Model) findNoteMatches(query string) []noteMatch {
 			wordCount: len(strings.Fields(string(content))),
 			sizeBytes: info.Size(),
 			modTime:   info.ModTime(),
+			taskDone:  taskDone,
+			taskTotal: taskTotal,
 			preview:   notePreviewLines(string(content)),
 		})
 	}

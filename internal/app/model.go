@@ -21,6 +21,7 @@ const (
 	maxListDialogWidth        = 100
 	maxSearchPaletteWidth     = 100
 	listUpdatedAtWidth        = 17
+	listTaskProgressWidth     = 10
 	listMetaWidth             = 20
 	listColumnGap             = 2
 	editorPaneGap             = 2
@@ -186,6 +187,8 @@ type noteMatch struct {
 	wordCount int
 	sizeBytes int64
 	modTime   time.Time
+	taskDone  int
+	taskTotal int
 	preview   []string
 }
 

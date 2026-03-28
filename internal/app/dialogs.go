@@ -3,6 +3,7 @@ package app
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/charmbracelet/lipgloss"
 )
@@ -110,13 +111,7 @@ func (m Model) listDialog() string {
 
 	for i := start; i < end; i++ {
 		note := m.dialogNotes[i]
-		line := m.listDialogLine(note)
-		if i == m.dialogIndex {
-			lines = append(lines, commandSelectedStyle.Render(line))
-			continue
-		}
-
-		lines = append(lines, line)
+		lines = append(lines, m.listDialogLine(note, i == m.dialogIndex))
 	}
 
 	if end < len(m.dialogNotes) {
@@ -220,32 +215,92 @@ func (m Model) listDialogStyle() lipgloss.Style {
 	return dialogStyle.Copy().Width(width)
 }
 
-func (m Model) listDialogLine(note noteMatch) string {
+func (m Model) listDialogLine(note noteMatch, selected bool) string {
 	dialogStyle := m.listDialogStyle()
 	contentWidth := dialogStyle.GetWidth() - dialogStyle.GetHorizontalFrameSize()
 	metaWidth := listMetaWidth
 	updatedWidth := listUpdatedAtWidth
-	nameWidth := max(12, contentWidth-metaWidth-updatedWidth-(listColumnGap*2))
+	progressWidth := listTaskProgressWidth
+	nameWidth := max(12, contentWidth-metaWidth-updatedWidth-progressWidth-(listColumnGap*2))
+	nameWidth = max(12, nameWidth-listColumnGap)
 
-	name := listNameStyle.Copy().
-		Width(nameWidth).
-		Render(truncateText(note.name, nameWidth))
+	nameStyle := listNameStyle.Copy().Width(nameWidth)
+	progress := strings.Repeat(" ", progressWidth)
+
+	if selected {
+		nameStyle = commandSelectedStyle.Copy().Width(nameWidth)
+	}
+	if note.taskTotal > 0 {
+		progress = renderListTaskProgress(note.taskDone, note.taskTotal)
+	}
+
+	name := nameStyle.Render(truncateText(note.name, nameWidth))
 	updated := listUpdatedStyle.Copy().
 		Width(updatedWidth).
-		Render(successStyle.Render(formatNoteUpdatedAt(note.modTime)))
+		Render(renderListUpdatedAt(note.modTime))
 	meta := lipgloss.NewStyle().
 		Width(metaWidth).
 		Align(lipgloss.Right).
-		Render(metaStyle.Render(noteMeta(note)))
+		Render(renderListMeta(note))
+	progress = lipgloss.NewStyle().
+		Width(progressWidth).
+		Align(lipgloss.Left).
+		Render(progress)
 
-	return lipgloss.JoinHorizontal(
-		lipgloss.Left,
+	parts := []string{
 		name,
 		strings.Repeat(" ", listColumnGap),
 		updated,
 		strings.Repeat(" ", listColumnGap),
+		progress,
+		strings.Repeat(" ", listColumnGap),
 		meta,
+	}
+
+	return lipgloss.JoinHorizontal(lipgloss.Left, parts...)
+}
+
+func renderListTaskProgress(done int, total int) string {
+	if total <= 0 {
+		return ""
+	}
+
+	percent := done * 100 / total
+	style := editorTaskProgressStyle(percent)
+	return lipgloss.JoinHorizontal(
+		lipgloss.Left,
+		style.Render(fmt.Sprintf("%d%%", percent)),
+		helpStyle.Render(" "),
+		renderListTaskProgressBar(percent),
 	)
+}
+
+func renderListTaskProgressBar(percent int) string {
+	const width = 4
+
+	filled := percent * width / 100
+	if percent > 0 && filled == 0 {
+		filled = 1
+	}
+	if percent >= 100 {
+		filled = width
+	}
+
+	style := editorTaskProgressStyle(percent)
+	return lipgloss.JoinHorizontal(
+		lipgloss.Left,
+		style.Render(strings.Repeat("█", filled)),
+		metaStyle.Render(strings.Repeat("░", max(0, width-filled))),
+	)
+}
+
+func renderListUpdatedAt(modTime time.Time) string {
+	formatted := formatNoteUpdatedAt(modTime)
+	return successStyle.Render(formatted)
+}
+
+func renderListMeta(note noteMatch) string {
+	return metaStyle.Render(noteMeta(note))
 }
 
 func (m Model) linkDialogLine(link noteLink, selected bool) string {
