@@ -223,6 +223,7 @@ func New(cfg config.Config, configPath string, version string) Model {
 	editor.Prompt = ""
 	editor.ShowLineNumbers = false
 	editor.CharLimit = 0
+	editor.FocusedStyle.CursorLine = lipgloss.NewStyle()
 	editor.SetHeight(12)
 	editor.SetWidth(64)
 

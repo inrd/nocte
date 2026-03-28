@@ -8,6 +8,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/x/ansi"
 
 	"github.com/inrd/nocte/internal/config"
 )
@@ -34,6 +35,15 @@ func TestOpenEditorDoesNotTruncateLongNotes(t *testing.T) {
 	}
 	if got := model.previewContent(); got == "" || !strings.Contains(got, "I need to make") {
 		t.Fatalf("previewContent() = %q, want top of note content", got)
+	}
+}
+
+func TestNewEditorDisablesFocusedCurrentLineBackground(t *testing.T) {
+	model := New(config.Config{}, "", "test")
+
+	want := lipgloss.NoColor{}
+	if got := model.editor.FocusedStyle.CursorLine.GetBackground(); got != want {
+		t.Fatalf("editor.FocusedStyle.CursorLine.GetBackground() = %#v, want %#v", got, want)
 	}
 }
 
@@ -801,6 +811,58 @@ func TestEditorViewShowsMarkdownPreviewWhenVisible(t *testing.T) {
 	}
 }
 
+func TestEditorViewUsesStableHalfWidthSplitWhenPreviewVisible(t *testing.T) {
+	tmpDir := t.TempDir()
+	notePath := writeTestNote(t, tmpDir, "draft.md", "# Title\n\n![Diagram](./diagram.png)\n\nA longer preview block that should not change the pane split width.")
+
+	model := New(config.Config{NotesPath: tmpDir}, "", "test")
+	model.width = 96
+	model.openEditor(notePath, "draft.md")
+
+	editorPaneWidth := model.editorPaneWidth()
+	previewPaneWidth := model.previewPaneWidth()
+
+	view := model.editorView()
+	lines := strings.Split(view, "\n")
+
+	var borderLine string
+	for _, line := range lines {
+		plainLine := ansi.Strip(line)
+		if strings.Count(plainLine, "┌") >= 2 {
+			borderLine = plainLine
+			break
+		}
+	}
+	if borderLine == "" {
+		t.Fatalf("editorView() missing split pane border line: %q", view)
+	}
+
+	if got := ansi.StringWidth(borderLine); got < editorPaneWidth+editorPaneGap+previewPaneWidth {
+		t.Fatalf("split header width = %d, want at least %d", got, editorPaneWidth+editorPaneGap+previewPaneWidth)
+	}
+
+	firstPaneIndex := strings.Index(borderLine, "┌")
+	secondPaneIndex := strings.Index(borderLine[firstPaneIndex+1:], "┌")
+	if firstPaneIndex == -1 || secondPaneIndex == -1 {
+		t.Fatalf("split border line missing both panes: %q", borderLine)
+	}
+	secondPaneIndex += firstPaneIndex + 1
+
+	firstPaneEnd := strings.Index(borderLine[firstPaneIndex:], "┐")
+	secondPaneEnd := strings.Index(borderLine[secondPaneIndex:], "┐")
+	if firstPaneEnd == -1 || secondPaneEnd == -1 {
+		t.Fatalf("split border line missing pane ends: %q", borderLine)
+	}
+	firstPaneEnd += firstPaneIndex + len("┐")
+	secondPaneEnd += secondPaneIndex + len("┐")
+
+	firstPaneWidth := ansi.StringWidth(borderLine[firstPaneIndex:firstPaneEnd])
+	secondPaneWidth := ansi.StringWidth(borderLine[secondPaneIndex:secondPaneEnd])
+	if firstPaneWidth != secondPaneWidth {
+		t.Fatalf("pane widths = %d and %d, want equal widths", firstPaneWidth, secondPaneWidth)
+	}
+}
+
 func TestCtrlHOpensAndClosesEditorHelpDialog(t *testing.T) {
 	tmpDir := t.TempDir()
 	notePath := writeTestNote(t, tmpDir, "draft.md", "hello")
@@ -902,6 +964,26 @@ func TestRenderMarkdownPreviewKeepsWrappedQuotePrefix(t *testing.T) {
 	}
 	if !strings.Contains(rendered, "│ should stay") {
 		t.Fatalf("renderMarkdownPreview() missing wrapped quote continuation prefix: %q", rendered)
+	}
+}
+
+func TestPreviewContentUsesPreviewPaneInnerWidth(t *testing.T) {
+	tmpDir := t.TempDir()
+	notePath := writeTestNote(t, tmpDir, "draft.md", "---")
+
+	model := New(config.Config{NotesPath: tmpDir}, "", "test")
+	model.width = 96
+	model.openEditor(notePath, "draft.md")
+
+	preview := model.previewContent()
+	lines := strings.Split(preview, "\n")
+	if len(lines) != 1 {
+		t.Fatalf("previewContent() lines = %d, want 1: %q", len(lines), preview)
+	}
+
+	wantWidth := model.previewPaneContentWidth()
+	if got := ansi.StringWidth(lines[0]); got != wantWidth {
+		t.Fatalf("previewContent() rule width = %d, want %d", got, wantWidth)
 	}
 }
 

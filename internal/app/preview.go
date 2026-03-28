@@ -49,6 +49,10 @@ func (m Model) previewPaneWidth() int {
 	return max(minPreviewPaneWidth, width-editorPaneGap-m.editorPaneWidth())
 }
 
+func (m Model) previewPaneContentWidth() int {
+	return max(1, m.previewPaneWidth()-inputStyle.GetHorizontalFrameSize())
+}
+
 func (m *Model) togglePreview() {
 	m.previewEnabled = !m.previewEnabled
 	m.resizeEditor()
@@ -59,7 +63,7 @@ func (m Model) previewContent() string {
 		return ""
 	}
 
-	rendered, offsets := renderMarkdownPreviewLinesForNote(m.editor.Value(), m.editorPath, m.previewPaneWidth())
+	rendered, offsets := renderMarkdownPreviewLinesForNote(m.editor.Value(), m.editorPath, m.previewPaneContentWidth())
 	if len(rendered) == 0 {
 		return ""
 	}

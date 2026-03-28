@@ -53,14 +53,16 @@ func (m Model) View() string {
 func (m Model) editorView() string {
 	header := dialogTitleStyle.Render(m.editorName)
 	pathLine := helpStyle.Render(m.editorPath)
+	editorPaneWidth := m.editorPaneWidth()
 	editorContent := m.editor.View()
 	if m.previewVisible() {
 		editorContent = lipgloss.JoinVertical(lipgloss.Left, helpStyle.Render("Editor"), editorContent)
 	}
-	editorBox := inputStyle.Render(editorContent)
+	editorBox := inputStyle.Copy().Width(editorPaneWidth).Render(editorContent)
 	if m.previewVisible() {
+		previewPaneWidth := m.previewPaneWidth()
 		previewContent := lipgloss.JoinVertical(lipgloss.Left, helpStyle.Render("Preview (read-only)"), m.previewContent())
-		previewBox := inputStyle.Render(previewContent)
+		previewBox := inputStyle.Copy().Width(previewPaneWidth).Render(previewContent)
 		editorBox = lipgloss.JoinHorizontal(lipgloss.Top, editorBox, strings.Repeat(" ", editorPaneGap), previewBox)
 	}
 
