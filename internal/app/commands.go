@@ -33,12 +33,14 @@ func (m Model) handleCommand() (tea.Model, tea.Cmd) {
 	case ":help":
 		m.activeDialog = "help"
 		m.input.SetValue(command)
+		m.input.CursorEnd()
 		m.status = ""
 		m.isError = false
 		return m, nil
 	case ":info":
 		m.activeDialog = "info"
 		m.input.SetValue(command)
+		m.input.CursorEnd()
 		m.status = ""
 		m.isError = false
 		return m, nil

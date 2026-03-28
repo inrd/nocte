@@ -274,6 +274,22 @@ func TestFilteredCommandsFindsTodoByPrefix(t *testing.T) {
 	}
 }
 
+func TestHandleCommandHelpMovesCursorToEndOfSelectedCommand(t *testing.T) {
+	model := New(config.Config{}, "", "test")
+	model.input.SetValue(":h")
+	model.input.SetCursor(1)
+	model.syncLauncherState()
+
+	model = updateModel(t, model, tea.KeyMsg{Type: tea.KeyEnter})
+
+	if model.input.Value() != ":help" {
+		t.Fatalf("input.Value() = %q, want %q", model.input.Value(), ":help")
+	}
+	if model.input.Position() != len(":help") {
+		t.Fatalf("input.Position() = %d, want %d", model.input.Position(), len(":help"))
+	}
+}
+
 func TestCommandPaletteViewUsesScrollableViewport(t *testing.T) {
 	model := New(config.Config{}, "", "test")
 	model.height = 12

@@ -43,6 +43,7 @@ Prefer a single `Usage` section in `README.md` over separate feature and how-to 
 - Running `:export-all` should rebuild the `html` subdirectory of the main notes directory and render every Markdown note there as HTML without opening a browser.
 - Running `:files` should open the notes directory in the system file manager and create the directory first when it does not exist yet.
 - Typing after `:` should keep command-name prefix matches ahead of looser fuzzy or description-only command matches in the command palette.
+- Accepting a command from the command palette should place the launcher cursor at the end of the inserted command text.
 - Existing note matches should not be selected by default.
 - Existing full-text search matches should not be selected by default.
 - Pressing `Up` or `Down` should move through note matches, and pressing `Enter` with a selected match should open that note in the editor.

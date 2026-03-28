@@ -102,6 +102,7 @@ func (m *Model) openListDialog() {
 		m.dialogIndex = 0
 	}
 	m.input.SetValue(":list")
+	m.input.CursorEnd()
 	m.input.Blur()
 	m.status = ""
 	m.isError = false
@@ -110,6 +111,7 @@ func (m *Model) openListDialog() {
 func (m *Model) openTodoPalette() {
 	m.todoMode = true
 	m.input.SetValue(":todo")
+	m.input.CursorEnd()
 	m.input.Focus()
 	m.commandIndex = 0
 	m.commandOffset = 0
