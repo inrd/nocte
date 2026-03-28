@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 
 	"github.com/inrd/nocte/internal/config"
 )
@@ -33,6 +34,99 @@ func TestOpenEditorDoesNotTruncateLongNotes(t *testing.T) {
 	}
 	if got := model.previewContent(); got == "" || !strings.Contains(got, "I need to make") {
 		t.Fatalf("previewContent() = %q, want top of note content", got)
+	}
+}
+
+func TestEditorStatusLineShowsTaskProgressAndBar(t *testing.T) {
+	model := New(config.Config{}, "", "test")
+	model.editor.SetValue("- [x] done\n- [ ] next")
+
+	status := model.editorStatusLine()
+
+	if !strings.Contains(status, "50%") {
+		t.Fatalf("editorStatusLine() = %q, want 50%% progress", status)
+	}
+	if !strings.Contains(status, editorTaskProgressStyle(50).Render("50%")) {
+		t.Fatalf("editorStatusLine() = %q, want orange 50%% progress text", status)
+	}
+	if !strings.Contains(status, renderEditorTaskProgressBar(50)) {
+		t.Fatalf("editorStatusLine() = %q, want progress bar", status)
+	}
+}
+
+func TestEditorStatusLineOmitsTaskProgressWithoutTasks(t *testing.T) {
+	model := New(config.Config{}, "", "test")
+	model.editor.SetValue("plain note")
+
+	status := model.editorStatusLine()
+
+	if strings.Contains(status, "%") {
+		t.Fatalf("editorStatusLine() = %q, want no task percentage", status)
+	}
+	if strings.Contains(status, "█") || strings.Contains(status, "░") {
+		t.Fatalf("editorStatusLine() = %q, want no task progress bar", status)
+	}
+}
+
+func TestEditorTaskProgressStyleThresholds(t *testing.T) {
+	tests := []struct {
+		name    string
+		percent int
+		want    lipgloss.TerminalColor
+	}{
+		{
+			name:    "red below fifty",
+			percent: 25,
+			want:    lipgloss.Color("9"),
+		},
+		{
+			name:    "orange at fifty",
+			percent: 50,
+			want:    lipgloss.Color("208"),
+		},
+		{
+			name:    "orange at seventy five",
+			percent: 75,
+			want:    lipgloss.Color("208"),
+		},
+		{
+			name:    "yellow over seventy five",
+			percent: 80,
+			want:    lipgloss.Color("11"),
+		},
+		{
+			name:    "green at one hundred",
+			percent: 100,
+			want:    lipgloss.Color("10"),
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := editorTaskProgressStyle(tc.percent).GetForeground()
+			if got != tc.want {
+				t.Fatalf("editorTaskProgressStyle(%d).GetForeground() = %#v, want %#v", tc.percent, got, tc.want)
+			}
+		})
+	}
+}
+
+func TestRenderEditorTaskProgressUsesYellowOverSeventyFive(t *testing.T) {
+	got := renderEditorTaskProgress("- [x] done\n- [x] done\n- [x] done\n- [x] done\n- [ ] open")
+
+	if !strings.Contains(got, editorTaskProgressStyle(80).Render("80%")) {
+		t.Fatalf("renderEditorTaskProgress() = %q, want styled 80%% text", got)
+	}
+	if editorTaskProgressStyle(80).GetForeground() != lipgloss.Color("11") {
+		t.Fatalf("editorTaskProgressStyle(80).GetForeground() = %#v, want yellow", editorTaskProgressStyle(80).GetForeground())
+	}
+}
+
+func TestCountTaskProgressCountsCompletedTasks(t *testing.T) {
+	completed, total := countTaskProgress("- [x] one\nplain text\n  - [ ] two\n+ [X] three")
+
+	if completed != 2 || total != 3 {
+		t.Fatalf("countTaskProgress() = (%d, %d), want (2, 3)", completed, total)
 	}
 }
 

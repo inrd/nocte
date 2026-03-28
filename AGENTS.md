@@ -67,6 +67,7 @@ Prefer a single `Usage` section in `README.md` over separate feature and how-to 
 - Pressing `Ctrl+D` in the editor should open a confirmation alert for deleting the current note, prevent terminal EOF handling, and on confirm delete the note and return to the launcher.
 - The editor must support long notes without truncating content.
 - The editor footer should keep editor exit shortcuts visible, point to `Ctrl+H` for the full shortcut list, and show the current note size with a warning when a very large note may slow editing or saving.
+- The editor footer should show Markdown task completion progress for the current note as a percentage with a small color-coded progress bar, using red below 50%, orange from 50% through 75%, yellow above 75%, and green at 100%.
 - If saving on editor exit fails, the app should warn before discarding unsaved changes.
 - Pressing `Esc` in the editor should save when needed and return to the main launcher input.
 - The editor should not expose an editor-only shortcut that quits the whole app directly; editor exit flows should return to the launcher.

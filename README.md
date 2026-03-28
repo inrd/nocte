@@ -58,6 +58,7 @@ export PATH="$HOME/.local/bin:$PATH"
 - Press `Ctrl+L` to browse links found in the current note and open the selected link in your default browser
 - Press `Ctrl+D` to delete the current note after confirming and return to the launcher
 - Press `Ctrl+H` to open the editor shortcut help dialog
+- The editor footer shows note size and task completion progress for Markdown task lists
 - Brand-new untouched empty notes are discarded when you leave the editor
 
 ### Image Preview

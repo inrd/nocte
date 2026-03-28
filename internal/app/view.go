@@ -107,8 +107,14 @@ func (m Model) editorView() string {
 
 func (m Model) editorStatusLine() string {
 	sizeInfo := metaStyle.Render(editorSizeStatus(m.editor.Value()))
+	taskInfo := renderEditorTaskProgress(m.editor.Value())
+	metaParts := []string{sizeInfo}
+	if taskInfo != "" {
+		metaParts = append(metaParts, taskInfo)
+	}
+	metaInfo := lipgloss.JoinHorizontal(lipgloss.Left, joinWithHelpSeparators(metaParts...)...)
 	if m.status == "" {
-		return sizeInfo
+		return metaInfo
 	}
 
 	var statusText string
@@ -118,7 +124,7 @@ func (m Model) editorStatusLine() string {
 		statusText = successStyle.Render(m.status)
 	}
 
-	return lipgloss.JoinHorizontal(lipgloss.Left, statusText, helpStyle.Render(" | "), sizeInfo)
+	return lipgloss.JoinHorizontal(lipgloss.Left, statusText, helpStyle.Render(" | "), metaInfo)
 }
 
 func (m Model) editorWarningLine() string {
@@ -128,6 +134,84 @@ func (m Model) editorWarningLine() string {
 	}
 
 	return errorStyle.Render(warning)
+}
+
+func renderEditorTaskProgress(content string) string {
+	completed, total := countTaskProgress(content)
+	if total == 0 {
+		return ""
+	}
+
+	percent := completed * 100 / total
+	style := editorTaskProgressStyle(percent)
+	return lipgloss.JoinHorizontal(
+		lipgloss.Left,
+		style.Render(fmt.Sprintf("%d%%", percent)),
+		helpStyle.Render(" "),
+		renderEditorTaskProgressBar(percent),
+	)
+}
+
+func renderEditorTaskProgressBar(percent int) string {
+	const width = 8
+
+	filled := percent * width / 100
+	if percent > 0 && filled == 0 {
+		filled = 1
+	}
+	if percent >= 100 {
+		filled = width
+	}
+
+	style := editorTaskProgressStyle(percent)
+	return lipgloss.JoinHorizontal(
+		lipgloss.Left,
+		style.Render(strings.Repeat("█", filled)),
+		metaStyle.Render(strings.Repeat("░", max(0, width-filled))),
+	)
+}
+
+func editorTaskProgressStyle(percent int) lipgloss.Style {
+	switch {
+	case percent >= 100:
+		return lipgloss.NewStyle().Foreground(lipgloss.Color("10"))
+	case percent > 75:
+		return lipgloss.NewStyle().Foreground(lipgloss.Color("11"))
+	case percent >= 50:
+		return lipgloss.NewStyle().Foreground(lipgloss.Color("208"))
+	default:
+		return lipgloss.NewStyle().Foreground(lipgloss.Color("9"))
+	}
+}
+
+func countTaskProgress(content string) (completed int, total int) {
+	for _, line := range strings.Split(content, "\n") {
+		if !isTaskListLine(line) {
+			continue
+		}
+
+		total++
+		_, marker, _ := parseTaskListLine(line)
+		if isCheckedTaskMarker(marker) {
+			completed++
+		}
+	}
+
+	return completed, total
+}
+
+func joinWithHelpSeparators(parts ...string) []string {
+	filtered := make([]string, 0, len(parts)*2)
+	for _, part := range parts {
+		if part == "" {
+			continue
+		}
+		if len(filtered) > 0 {
+			filtered = append(filtered, helpStyle.Render(" | "))
+		}
+		filtered = append(filtered, part)
+	}
+	return filtered
 }
 
 func (m Model) commandPaletteView() string {
