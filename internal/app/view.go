@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/charmbracelet/lipgloss"
 )
@@ -110,7 +111,8 @@ func (m Model) editorView() string {
 func (m Model) editorStatusLine() string {
 	sizeInfo := metaStyle.Render(editorSizeStatus(m.editor.Value()))
 	taskInfo := renderEditorTaskProgress(m.editor.Value())
-	metaParts := []string{sizeInfo}
+	saveInfo := renderEditorSaveStatus(m.editorDirty, m.editorLastSave)
+	metaParts := []string{sizeInfo, saveInfo}
 	if taskInfo != "" {
 		metaParts = append(metaParts, taskInfo)
 	}
@@ -127,6 +129,17 @@ func (m Model) editorStatusLine() string {
 	}
 
 	return lipgloss.JoinHorizontal(lipgloss.Left, statusText, helpStyle.Render(" | "), metaInfo)
+}
+
+func renderEditorSaveStatus(dirty bool, lastSave time.Time) string {
+	if dirty {
+		return mutedMetaStyle.Render("Unsaved changes")
+	}
+	if lastSave.IsZero() {
+		return mutedMetaStyle.Render("Not yet autosaved")
+	}
+
+	return mutedMetaStyle.Render(fmt.Sprintf("Last save %s", lastSave.Format("15:04:05")))
 }
 
 func (m Model) editorWarningLine() string {

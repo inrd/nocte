@@ -29,6 +29,8 @@ const (
 	minPreviewPaneWidth       = 24
 	searchResultLimit         = 50
 	searchSnippetContextLines = 1
+	editorAutosaveInterval    = 10 * time.Second
+	editorAutosaveIdleDelay   = 3 * time.Second
 )
 
 var (
@@ -45,6 +47,9 @@ var (
 
 	metaStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("11"))
+
+	mutedMetaStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("8"))
 
 	errorStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("9"))
@@ -172,6 +177,10 @@ type Model struct {
 	lastSaved      string
 	editorCreated  bool
 	editorAction   string
+	editorDirty    bool
+	editorLastEdit time.Time
+	editorLastSave time.Time
+	editorSession  int
 	previewEnabled bool
 }
 
@@ -246,4 +255,9 @@ func New(cfg config.Config, configPath string, version string) Model {
 
 func (m Model) Init() tea.Cmd {
 	return textinput.Blink
+}
+
+type editorAutosaveTickMsg struct {
+	session int
+	at      time.Time
 }

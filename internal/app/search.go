@@ -226,8 +226,9 @@ func (m Model) handleSearchResult() (tea.Model, tea.Cmd) {
 		if err := m.openSearchMatch(m.searchMatches[m.searchIndex]); err != nil {
 			m.status = err.Error()
 			m.isError = true
+			return m, nil
 		}
-		return m, nil
+		return m, m.startEditorAutosave()
 	}
 
 	if m.isTodoMode() {

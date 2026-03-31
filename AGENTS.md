@@ -54,7 +54,7 @@ Prefer a single `Usage` section in `README.md` over separate feature and how-to 
 - Pressing `Enter` in `/` search mode without a selected match should not create a new note.
 - Pressing `Enter` without a selected note match should keep the create-new-note behavior.
 - Leaving a newly created note empty and exiting the editor should delete that note instead of saving an empty file.
-- The initial note editor is plain text only, saves on close when content changed, and otherwise closes without rewriting the file.
+- The initial note editor is plain text only, autosaves after a short idle period when content changed, saves on close when content changed, and otherwise closes without rewriting the file.
 - The editor can show a toggleable live Markdown preview, controlled by keyboard shortcut and documented below the editor, including headings, links, inline code, bold, italics, strikethrough, task lists, and nested Markdown list indentation.
 - Checked Markdown task items should appear dimmed with a strikethrough effect in the editor preview, and the HTML export should style checked task items to match that completed-state treatment.
 - Pressing `Tab` in the editor should indent the start of the current line with spaces, and `Shift+Tab` should remove up to that configured leading indent width, instead of moving focus, while keeping the cursor at the same in-line content position after the indent change.
@@ -68,7 +68,7 @@ Prefer a single `Usage` section in `README.md` over separate feature and how-to 
 - Pressing `Ctrl+L` in the editor should open a dialog listing links found in the current note, with visually distinct labels and URLs, and pressing `Enter` on a selected link should open it in the default web browser.
 - Pressing `Ctrl+D` in the editor should open a confirmation alert for deleting the current note, prevent terminal EOF handling, and on confirm delete the note and return to the launcher.
 - The editor must support long notes without truncating content.
-- The editor footer should keep editor exit shortcuts visible, point to `Ctrl+H` for the full shortcut list, and show the current note size with a warning when a very large note may slow editing or saving.
+- The editor footer should keep editor exit shortcuts visible, point to `Ctrl+H` for the full shortcut list, show the current note size and save state, and warn when a very large note may slow editing or saving.
 - The editor footer should show Markdown task completion progress for the current note as a percentage with a small color-coded progress bar, using red below 50%, orange from 50% through 75%, yellow above 75%, and green at 100%.
 - If saving on editor exit fails, the app should warn before discarding unsaved changes.
 - Pressing `Esc` in the editor should save when needed and return to the main launcher input.

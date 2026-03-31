@@ -48,7 +48,7 @@ export PATH="$HOME/.local/bin:$PATH"
 
 ### Editor
 
-- Edit notes in a plain text editor and save on exit when content changed
+- Edit notes in a plain text editor, autosave while idle, and save on exit when content changed
 - Press `Esc` to save and return to the launcher
 - Press `Ctrl+A` to discard editor changes and return to the launcher
 - Press `Ctrl+P` to toggle the live Markdown preview for headings, lists, task lists, links, inline code, bold, italics, and strikethrough
@@ -58,7 +58,7 @@ export PATH="$HOME/.local/bin:$PATH"
 - Press `Ctrl+L` to browse links found in the current note and open the selected link in your default browser
 - Press `Ctrl+D` to delete the current note after confirming and return to the launcher
 - Press `Ctrl+H` to open the editor shortcut help dialog
-- The editor footer shows note size and task completion progress for Markdown task lists
+- The editor footer shows note size, save state, and task completion progress for Markdown task lists
 - Brand-new untouched empty notes are discarded when you leave the editor
 
 ### Image Preview

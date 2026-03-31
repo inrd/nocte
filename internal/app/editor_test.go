@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -75,6 +76,30 @@ func TestEditorStatusLineOmitsTaskProgressWithoutTasks(t *testing.T) {
 	}
 	if strings.Contains(status, "█") || strings.Contains(status, "░") {
 		t.Fatalf("editorStatusLine() = %q, want no task progress bar", status)
+	}
+}
+
+func TestEditorStatusLineShowsUnsavedChangesState(t *testing.T) {
+	model := New(config.Config{}, "", "test")
+	model.editor.SetValue("draft")
+	model.editorDirty = true
+
+	status := model.editorStatusLine()
+
+	if !strings.Contains(status, "Unsaved changes") {
+		t.Fatalf("editorStatusLine() = %q, want unsaved changes state", status)
+	}
+}
+
+func TestEditorStatusLineShowsLastSaveTime(t *testing.T) {
+	model := New(config.Config{}, "", "test")
+	model.editor.SetValue("draft")
+	model.editorLastSave = time.Date(2026, time.March, 31, 14, 32, 10, 0, time.UTC)
+
+	status := model.editorStatusLine()
+
+	if !strings.Contains(status, "Last save 14:32:10") {
+		t.Fatalf("editorStatusLine() = %q, want last save timestamp", status)
 	}
 }
 
@@ -189,6 +214,113 @@ func TestUpdateEscWithoutChangesClosesEditorWithoutSaveMessage(t *testing.T) {
 	}
 	if string(data) != "before" {
 		t.Fatalf("saved content = %q, want %q", string(data), "before")
+	}
+}
+
+func TestEditorAutosaveTickSavesDirtyEditorAfterIdle(t *testing.T) {
+	tmpDir := t.TempDir()
+	notePath := writeTestNote(t, tmpDir, "draft.md", "before")
+
+	model := New(config.Config{NotesPath: tmpDir}, "", "test")
+	model.openEditor(notePath, "draft.md")
+	model.editor.SetValue("after")
+	model.editorDirty = true
+	model.editorLastEdit = time.Now().Add(-editorAutosaveIdleDelay)
+
+	model = updateModel(t, model, editorAutosaveTickMsg{
+		session: model.editorSession,
+		at:      model.editorLastEdit.Add(editorAutosaveIdleDelay),
+	})
+
+	if !model.isEditing() {
+		t.Fatalf("model should stay in the editor after autosave")
+	}
+	if model.editorDirty {
+		t.Fatalf("editorDirty = true after autosave, want false")
+	}
+	if got := model.lastSaved; got != "after" {
+		t.Fatalf("lastSaved = %q, want %q", got, "after")
+	}
+	if model.editorLastSave.IsZero() {
+		t.Fatalf("editorLastSave = zero, want autosave timestamp")
+	}
+
+	data, err := os.ReadFile(notePath)
+	if err != nil {
+		t.Fatalf("ReadFile(%q) error = %v", notePath, err)
+	}
+	if string(data) != "after" {
+		t.Fatalf("saved content = %q, want %q", string(data), "after")
+	}
+}
+
+func TestEditorAutosaveTickWaitsForIdle(t *testing.T) {
+	tmpDir := t.TempDir()
+	notePath := writeTestNote(t, tmpDir, "draft.md", "before")
+
+	model := New(config.Config{NotesPath: tmpDir}, "", "test")
+	model.openEditor(notePath, "draft.md")
+	model.editor.SetValue("after")
+	model.editorDirty = true
+	model.editorLastEdit = time.Now()
+
+	model = updateModel(t, model, editorAutosaveTickMsg{
+		session: model.editorSession,
+		at:      model.editorLastEdit.Add(editorAutosaveIdleDelay - time.Millisecond),
+	})
+
+	if !model.editorDirty {
+		t.Fatalf("editorDirty = false before idle threshold, want true")
+	}
+	if got := model.lastSaved; got != "before" {
+		t.Fatalf("lastSaved = %q, want %q", got, "before")
+	}
+
+	data, err := os.ReadFile(notePath)
+	if err != nil {
+		t.Fatalf("ReadFile(%q) error = %v", notePath, err)
+	}
+	if string(data) != "before" {
+		t.Fatalf("saved content = %q, want %q", string(data), "before")
+	}
+}
+
+func TestEditorAutosaveTickIgnoresStaleSession(t *testing.T) {
+	tmpDir := t.TempDir()
+	firstPath := writeTestNote(t, tmpDir, "first.md", "before")
+	secondPath := writeTestNote(t, tmpDir, "second.md", "still here")
+
+	model := New(config.Config{NotesPath: tmpDir}, "", "test")
+	model.openEditor(firstPath, "first.md")
+	staleSession := model.editorSession
+	model.editor.SetValue("after")
+	model.editorDirty = true
+	model.editorLastEdit = time.Now().Add(-editorAutosaveIdleDelay)
+
+	model.openEditor(secondPath, "second.md")
+	model = updateModel(t, model, editorAutosaveTickMsg{
+		session: staleSession,
+		at:      time.Now(),
+	})
+
+	if got := model.editorName; got != "second.md" {
+		t.Fatalf("editorName = %q, want %q", got, "second.md")
+	}
+
+	firstData, err := os.ReadFile(firstPath)
+	if err != nil {
+		t.Fatalf("ReadFile(%q) error = %v", firstPath, err)
+	}
+	if string(firstData) != "before" {
+		t.Fatalf("first note content = %q, want %q", string(firstData), "before")
+	}
+
+	secondData, err := os.ReadFile(secondPath)
+	if err != nil {
+		t.Fatalf("ReadFile(%q) error = %v", secondPath, err)
+	}
+	if string(secondData) != "still here" {
+		t.Fatalf("second note content = %q, want %q", string(secondData), "still here")
 	}
 }
 

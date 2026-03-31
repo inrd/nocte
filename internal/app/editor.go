@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 	"unicode"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -26,6 +27,10 @@ func (m *Model) openEditor(path string, name string) {
 	m.editorName = name
 	m.lastSaved = string(content)
 	m.editorCreated = false
+	m.editorDirty = false
+	m.editorLastEdit = time.Time{}
+	m.editorLastSave = time.Time{}
+	m.editorSession++
 	m.editor.SetValue(m.lastSaved)
 	m.editor.Focus()
 	m.resizeEditor()
@@ -54,6 +59,9 @@ func (m *Model) closeEditor(saved bool) {
 	m.lastSaved = ""
 	m.editorCreated = false
 	m.editorAction = ""
+	m.editorDirty = false
+	m.editorLastEdit = time.Time{}
+	m.editorLastSave = time.Time{}
 	m.editor.SetValue("")
 	m.editor.Blur()
 	m.input.SetValue("")
@@ -74,6 +82,9 @@ func (m *Model) discardEditor() {
 	m.lastSaved = ""
 	m.editorCreated = false
 	m.editorAction = ""
+	m.editorDirty = false
+	m.editorLastEdit = time.Time{}
+	m.editorLastSave = time.Time{}
 	m.editor.SetValue("")
 	m.editor.Blur()
 	m.activeDialog = ""
@@ -95,6 +106,9 @@ func (m *Model) deleteEditorNote() error {
 	m.lastSaved = ""
 	m.editorCreated = false
 	m.editorAction = ""
+	m.editorDirty = false
+	m.editorLastEdit = time.Time{}
+	m.editorLastSave = time.Time{}
 	m.activeDialog = ""
 	m.dialogNotes = nil
 	m.dialogLinks = nil
@@ -122,20 +136,53 @@ func (m *Model) resizeEditor() {
 	m.editor.SetHeight(height)
 }
 
-func (m *Model) saveEditor() (bool, error) {
-	content := m.editor.Value()
-	if content == m.lastSaved {
-		return false, nil
-	}
-
+func (m *Model) writeEditorContent(content string) error {
 	if err := os.WriteFile(m.editorPath, []byte(content), 0o644); err != nil {
-		return false, fmt.Errorf("could not save %s: %w", m.editorName, err)
+		return fmt.Errorf("could not save %s: %w", m.editorName, err)
 	}
 
 	m.lastSaved = content
+	m.editorDirty = false
+	m.editorLastSave = time.Now()
+	return nil
+}
+
+func (m *Model) saveEditor() (bool, error) {
+	content := m.editor.Value()
+	if content == m.lastSaved {
+		m.editorDirty = false
+		return false, nil
+	}
+
+	if err := m.writeEditorContent(content); err != nil {
+		return false, err
+	}
+
 	m.status = fmt.Sprintf("Saved %s", m.editorName)
 	m.isError = false
 	return true, nil
+}
+
+func (m *Model) autosaveEditor() (bool, error) {
+	content := m.editor.Value()
+	if content == "" && m.editorCreated && m.lastSaved == "" {
+		return false, nil
+	}
+	if content == m.lastSaved {
+		m.editorDirty = false
+		return false, nil
+	}
+
+	if err := m.writeEditorContent(content); err != nil {
+		return false, err
+	}
+
+	return true, nil
+}
+
+func (m *Model) markEditorDirty() {
+	m.editorDirty = m.editor.Value() != m.lastSaved
+	m.editorLastEdit = time.Now()
 }
 
 func (m *Model) discardEmptyCreatedNote() (bool, error) {
@@ -209,6 +256,13 @@ func (m *Model) openSearchMatch(match searchMatch) error {
 	return nil
 }
 
+func (m Model) startEditorAutosave() tea.Cmd {
+	session := m.editorSession
+	return tea.Tick(editorAutosaveInterval, func(at time.Time) tea.Msg {
+		return editorAutosaveTickMsg{session: session, at: at}
+	})
+}
+
 func (m *Model) jumpEditorTo(line int, column int) {
 	if line < 0 {
 		line = 0
@@ -237,6 +291,7 @@ func (m *Model) toggleEditorTask() {
 	column := m.editor.LineInfo().CharOffset
 	lines[line], column = toggleTaskLine(lines[line], column)
 	m.editor.SetValue(strings.Join(lines, "\n"))
+	m.markEditorDirty()
 	m.jumpEditorTo(line, column)
 }
 
@@ -251,6 +306,7 @@ func (m *Model) indentEditorLine() {
 	column := m.editor.LineInfo().CharOffset
 	lines[line] = indent + lines[line]
 	m.editor.SetValue(strings.Join(lines, "\n"))
+	m.markEditorDirty()
 	m.jumpEditorTo(line, column+len([]rune(indent)))
 }
 
@@ -269,6 +325,7 @@ func (m *Model) unindentEditorLine() {
 	column := m.editor.LineInfo().CharOffset
 	lines[line] = lines[line][indentWidth:]
 	m.editor.SetValue(strings.Join(lines, "\n"))
+	m.markEditorDirty()
 	m.jumpEditorTo(line, max(0, column-indentWidth))
 }
 

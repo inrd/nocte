@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -27,6 +28,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.syncNoteOffset()
 		}
 		return m, nil
+	case editorAutosaveTickMsg:
+		return m.handleEditorAutosaveTick(msg)
 	case tea.KeyMsg:
 		return m.updateKey(msg)
 	}
@@ -89,8 +92,9 @@ func (m Model) updateKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			if err := m.openExistingNote(m.noteMatches[m.noteIndex]); err != nil {
 				m.status = err.Error()
 				m.isError = true
+				return m, nil
 			}
-			return m, nil
+			return m, m.startEditorAutosave()
 		}
 		return m.createNoteFromInput()
 	}
@@ -214,7 +218,12 @@ func (m Model) updateEditorKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	}
 
 	var cmd tea.Cmd
+	previousValue := m.editor.Value()
 	m.editor, cmd = m.editor.Update(msg)
+	if m.editor.Value() != previousValue {
+		m.editorDirty = m.editor.Value() != m.lastSaved
+		m.editorLastEdit = time.Now()
+	}
 	return m, cmd
 }
 
@@ -240,6 +249,10 @@ func (m Model) updateDialogKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			if err := m.openSelectedDialogNote(); err != nil {
 				m.status = err.Error()
 				m.isError = true
+				return m, nil
+			}
+			if m.isEditing() {
+				return m, m.startEditorAutosave()
 			}
 			return m, nil
 		}
@@ -287,5 +300,27 @@ func (m Model) createNoteFromInput() (tea.Model, tea.Cmd) {
 	m.editorCreated = true
 	m.status = fmt.Sprintf("Created %s", filename+".md")
 	m.isError = false
-	return m, nil
+	return m, m.startEditorAutosave()
+}
+
+func (m Model) handleEditorAutosaveTick(msg editorAutosaveTickMsg) (tea.Model, tea.Cmd) {
+	if !m.isEditing() || msg.session != m.editorSession {
+		return m, nil
+	}
+
+	cmd := m.startEditorAutosave()
+	if !m.editorDirty {
+		return m, cmd
+	}
+	if !m.editorLastEdit.IsZero() && msg.at.Sub(m.editorLastEdit) < editorAutosaveIdleDelay {
+		return m, cmd
+	}
+
+	if _, err := m.autosaveEditor(); err != nil {
+		m.status = err.Error()
+		m.isError = true
+		return m, cmd
+	}
+
+	return m, cmd
 }
