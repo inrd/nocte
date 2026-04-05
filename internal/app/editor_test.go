@@ -1203,6 +1203,50 @@ func TestRenderMarkdownPreviewRendersTaskLists(t *testing.T) {
 	}
 }
 
+func TestRenderMarkdownPreviewRendersNonTaskChildrenOfCheckedTask(t *testing.T) {
+	content := "- [x] done parent\n  - child bullet\n  1. child numbered\n  continuation text\n- [ ] open parent\n  - open child"
+	rendered := renderMarkdownPreview(content, 40)
+
+	for _, want := range []string{"child bullet", "child numbered", "continuation text", "open child"} {
+		if !strings.Contains(rendered, want) {
+			t.Fatalf("renderMarkdownPreview() missing %q in output: %q", want, rendered)
+		}
+	}
+}
+
+func TestRenderMarkdownPreviewTaskChildrenManageOwnState(t *testing.T) {
+	content := "- [x] done parent\n  - [ ] open child task\n  - [x] done child task"
+	rendered := renderMarkdownPreview(content, 40)
+
+	if !strings.Contains(rendered, "☐ open child task") {
+		t.Fatalf("renderMarkdownPreview() should render open child task with open marker: %q", rendered)
+	}
+	if !strings.Contains(rendered, "☑ done child task") {
+		t.Fatalf("renderMarkdownPreview() should render done child task with checked marker: %q", rendered)
+	}
+}
+
+func TestRenderMarkdownHTMLBodyStrikesThroughNonTaskChildrenOfCheckedTask(t *testing.T) {
+	content := "- [x] done parent\n  - child bullet\n- [ ] open parent\n  - open child"
+	rendered := renderMarkdownHTMLBody(content)
+
+	if !strings.Contains(rendered, "<li class=\"task-done\">child bullet") {
+		t.Fatalf("renderMarkdownHTMLBody() should add task-done to bullet child of checked task: %q", rendered)
+	}
+	if strings.Contains(rendered, "<li class=\"task-done\">open child") {
+		t.Fatalf("renderMarkdownHTMLBody() should not add task-done to child of open task: %q", rendered)
+	}
+}
+
+func TestRenderMarkdownHTMLBodyTaskChildrenManageOwnState(t *testing.T) {
+	content := "- [x] done parent\n  - [ ] open child task\n  - [x] done child task"
+	rendered := renderMarkdownHTMLBody(content)
+
+	if strings.Contains(rendered, "<li class=\"task-done\"><input type=\"checkbox\" disabled>") {
+		t.Fatalf("renderMarkdownHTMLBody() open child task should not get task-done class: %q", rendered)
+	}
+}
+
 func TestPreviewContentRendersMarkdownImagesWithChafa(t *testing.T) {
 	tmpDir := t.TempDir()
 	notePath := writeTestNote(t, tmpDir, "draft.md", "![diagram](./diagram.png)")

@@ -104,22 +104,28 @@ func renderMarkdownPreviewLinesForNote(content string, notePath string, width in
 	rendered := make([]string, 0, len(lines))
 	offsets := make([]int, len(lines))
 	inCodeBlock := false
+	completedParentIndent := -1
 
 	for i, line := range lines {
 		offsets[i] = len(rendered)
 		trimmed := strings.TrimSpace(line)
+		lineIndent := leadingVisualIndent(line)
 
 		switch {
 		case strings.HasPrefix(trimmed, "```"):
 			inCodeBlock = !inCodeBlock
+			completedParentIndent = -1
 			rendered = appendWrapped(rendered, previewMutedStyle, trimmed, width)
 		case inCodeBlock:
 			rendered = appendWrapped(rendered, previewCodeStyle, line, width)
 		case isMarkdownImageLine(trimmed):
+			completedParentIndent = -1
 			rendered = append(rendered, renderMarkdownImagePreview(notePath, trimmed, width)...)
 		case trimmed == "":
+			completedParentIndent = -1
 			rendered = append(rendered, "")
 		case headingLevel(trimmed) > 0:
+			completedParentIndent = -1
 			level := headingLevel(trimmed)
 			text := strings.TrimSpace(trimmed[level:])
 			if text == "" {
@@ -127,10 +133,16 @@ func renderMarkdownPreviewLinesForNote(content string, notePath string, width in
 			}
 			rendered = appendWrapped(rendered, previewHeadingStyle, text, width)
 		case strings.HasPrefix(trimmed, ">"):
+			completedParentIndent = -1
 			text := strings.TrimSpace(strings.TrimPrefix(trimmed, ">"))
 			rendered = appendPrefixedWrapped(rendered, previewQuoteStyle, "│ ", "│ ", text, width)
 		case isTaskListLine(line):
 			indent, marker, content := parseTaskListLine(line)
+			if isCheckedTaskMarker(marker) {
+				completedParentIndent = indent
+			} else {
+				completedParentIndent = -1
+			}
 			prefix := strings.Repeat(" ", indent) + marker
 			continuationPrefix := strings.Repeat(" ", indent+ansi.StringWidth(marker))
 			style := lipgloss.NewStyle()
@@ -139,19 +151,44 @@ func renderMarkdownPreviewLinesForNote(content string, notePath string, width in
 			}
 			rendered = appendPrefixedWrapped(rendered, style, prefix, continuationPrefix, content, width)
 		case isBulletLine(line):
+			childOfCompleted := completedParentIndent >= 0 && lineIndent > completedParentIndent
+			if !childOfCompleted {
+				completedParentIndent = -1
+			}
 			indent, markerWidth, content := parseBulletLine(line)
 			prefix := strings.Repeat(" ", indent) + "• "
 			continuationPrefix := strings.Repeat(" ", indent+markerWidth)
-			rendered = appendPrefixedWrapped(rendered, lipgloss.NewStyle(), prefix, continuationPrefix, content, width)
+			style := lipgloss.NewStyle()
+			if childOfCompleted {
+				style = previewCompletedTaskStyle
+			}
+			rendered = appendPrefixedWrapped(rendered, style, prefix, continuationPrefix, content, width)
 		case isNumberedLine(line):
+			childOfCompleted := completedParentIndent >= 0 && lineIndent > completedParentIndent
+			if !childOfCompleted {
+				completedParentIndent = -1
+			}
 			indent, marker, content := parseNumberedLine(line)
 			prefix := strings.Repeat(" ", indent) + marker
 			continuationPrefix := strings.Repeat(" ", indent+ansi.StringWidth(marker))
-			rendered = appendPrefixedWrapped(rendered, lipgloss.NewStyle(), prefix, continuationPrefix, content, width)
+			style := lipgloss.NewStyle()
+			if childOfCompleted {
+				style = previewCompletedTaskStyle
+			}
+			rendered = appendPrefixedWrapped(rendered, style, prefix, continuationPrefix, content, width)
 		case isRuleLine(trimmed):
+			completedParentIndent = -1
 			rendered = append(rendered, previewMutedStyle.Render(strings.Repeat("─", width)))
 		default:
-			rendered = appendWrapped(rendered, lipgloss.NewStyle(), line, width)
+			childOfCompleted := completedParentIndent >= 0 && lineIndent > completedParentIndent
+			if !childOfCompleted {
+				completedParentIndent = -1
+			}
+			style := lipgloss.NewStyle()
+			if childOfCompleted {
+				style = previewCompletedTaskStyle
+			}
+			rendered = appendWrapped(rendered, style, line, width)
 		}
 	}
 

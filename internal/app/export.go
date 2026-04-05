@@ -135,6 +135,7 @@ func renderMarkdownHTMLBody(content string) string {
 	lists := make([]listState, 0)
 	inCodeBlock := false
 	codeLanguage := ""
+	completedParentIndent := -1
 
 	flushParagraph := func() {
 		if len(paragraph) == 0 {
@@ -190,6 +191,7 @@ func renderMarkdownHTMLBody(content string) string {
 		if strings.HasPrefix(trimmed, "```") {
 			flushParagraph()
 			closeAllLists()
+			completedParentIndent = -1
 			if inCodeBlock {
 				flushCodeBlock()
 				continue
@@ -208,6 +210,7 @@ func renderMarkdownHTMLBody(content string) string {
 		if strings.HasPrefix(trimmed, ">") {
 			flushParagraph()
 			closeAllLists()
+			completedParentIndent = -1
 			block := make([]string, 0)
 			for i < len(lines) {
 				current := strings.TrimSpace(lines[i])
@@ -227,12 +230,14 @@ func renderMarkdownHTMLBody(content string) string {
 		if trimmed == "" {
 			flushParagraph()
 			closeAllLists()
+			completedParentIndent = -1
 			continue
 		}
 
 		if level := headingLevel(trimmed); level > 0 {
 			flushParagraph()
 			closeAllLists()
+			completedParentIndent = -1
 			text := strings.TrimSpace(trimmed[level:])
 			if text == "" {
 				text = trimmed
@@ -244,6 +249,7 @@ func renderMarkdownHTMLBody(content string) string {
 		if isRuleLine(trimmed) {
 			flushParagraph()
 			closeAllLists()
+			completedParentIndent = -1
 			b.WriteString("<hr>\n")
 			continue
 		}
@@ -264,7 +270,10 @@ func renderMarkdownHTMLBody(content string) string {
 				indent, marker, content = parseTaskListLine(line)
 				prefix = taskCheckboxHTML(marker)
 				if isCheckedTaskMarker(marker) {
+					completedParentIndent = indent
 					prefix = "<span class=\"task-checkbox\">" + prefix + "</span>"
+				} else {
+					completedParentIndent = -1
 				}
 			case isBulletLine(line):
 				var markerWidth int
@@ -275,6 +284,8 @@ func renderMarkdownHTMLBody(content string) string {
 				indent, marker, content = parseNumberedLine(line)
 				ordered = marker != ""
 			}
+
+			childOfCompleted := !isTaskListLine(line) && completedParentIndent >= 0 && indent > completedParentIndent
 
 			for len(lists) > 0 && indent < lists[len(lists)-1].indent {
 				closeListsTo(lists[len(lists)-1].indent)
@@ -294,7 +305,7 @@ func renderMarkdownHTMLBody(content string) string {
 				lists[len(lists)-1].liOpened = false
 			}
 
-			if strings.Contains(prefix, "task-checkbox") {
+			if strings.Contains(prefix, "task-checkbox") || childOfCompleted {
 				b.WriteString("<li class=\"task-done\">")
 			} else {
 				b.WriteString("<li>")
@@ -306,6 +317,7 @@ func renderMarkdownHTMLBody(content string) string {
 		}
 
 		closeAllLists()
+		completedParentIndent = -1
 		paragraph = append(paragraph, trimmed)
 	}
 
