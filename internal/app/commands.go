@@ -20,6 +20,16 @@ func (m Model) handleCommand() (tea.Model, tea.Cmd) {
 	command := matches[m.commandIndex].name
 
 	switch command {
+	case ":backup":
+		if err := m.runBackup(); err != nil {
+			m.status = err.Error()
+			m.isError = true
+			return m, nil
+		}
+		m.input.SetValue("")
+		m.input.Focus()
+		m.syncLauncherState()
+		return m, nil
 	case ":export-all":
 		if err := m.exportAllNotesHTML(); err != nil {
 			m.status = err.Error()

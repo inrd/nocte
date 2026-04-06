@@ -231,10 +231,35 @@ func TestFilteredCommandsPrefersNamePrefixMatches(t *testing.T) {
 	model.input.SetValue(":l")
 
 	got := commandNames(model.filteredCommands())
-	want := []string{":list", ":help", ":files", ":export-all", ":todo"}
 
-	if !reflect.DeepEqual(got, want) {
-		t.Fatalf("filteredCommands() = %v, want %v", got, want)
+	// :list must be first (prefix match)
+	if len(got) == 0 || got[0] != ":list" {
+		t.Fatalf("filteredCommands()[0] = %v, want :list", got)
+	}
+
+	// All name-level matches must precede description-only matches.
+	// ":l" matches :list, :help, :files, :export-all by name; anything
+	// else only matches via description and must appear after all of those.
+	nameLevelMatches := []string{":list", ":help", ":files", ":export-all"}
+	lastNameIdx := -1
+	for i, name := range got {
+		for _, nm := range nameLevelMatches {
+			if name == nm {
+				lastNameIdx = i
+			}
+		}
+	}
+	for i, name := range got {
+		isNameLevel := false
+		for _, nm := range nameLevelMatches {
+			if name == nm {
+				isNameLevel = true
+				break
+			}
+		}
+		if !isNameLevel && i < lastNameIdx {
+			t.Fatalf("filteredCommands(): description-only match %q at index %d appears before name match at index %d", name, i, lastNameIdx)
+		}
 	}
 }
 

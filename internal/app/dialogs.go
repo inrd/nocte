@@ -15,7 +15,7 @@ func (m Model) dialogView() string {
 	case "editor-help":
 		return editorHelpDialog()
 	case "info":
-		return infoDialog(m.version, m.configPath, m.config.NotesPath)
+		return infoDialog(m.version, m.configPath, m.config.NotesPath, m.config.BackupPath)
 	case "list":
 		return m.listDialog()
 	case "links":
@@ -75,14 +75,15 @@ func editorHelpDialog() string {
 	return dialogStyle.Render(body)
 }
 
-func infoDialog(version string, configPath string, notesPath string) string {
+func infoDialog(version string, configPath string, notesPath string, backupPath string) string {
 	body := lipgloss.JoinVertical(
 		lipgloss.Left,
 		dialogTitleStyle.Render("Info"),
 		"",
 		fmt.Sprintf("Version: %s", version),
-		fmt.Sprintf("Config: %s", configPath),
-		fmt.Sprintf("Notes: %s", notesPath),
+		fmt.Sprintf("Config:  %s", configPath),
+		fmt.Sprintf("Notes:   %s", notesPath),
+		fmt.Sprintf("Backups: %s", backupPath),
 		"",
 		helpStyle.Render("Press Esc or Enter to close."),
 	)

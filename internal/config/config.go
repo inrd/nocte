@@ -12,8 +12,9 @@ const fileName = "config.json"
 const defaultTabWidth = 4
 
 type Config struct {
-	NotesPath string `json:"notes_path"`
-	TabWidth  int    `json:"tab_width"`
+	NotesPath  string `json:"notes_path"`
+	BackupPath string `json:"backup_path"`
+	TabWidth   int    `json:"tab_width"`
 }
 
 func LoadOrCreate() (Config, string, error) {
@@ -73,6 +74,18 @@ func load(configPath string) (Config, error) {
 		}
 	}
 
+	if strings.TrimSpace(cfg.BackupPath) == "" {
+		defaultCfg, err := defaultConfig()
+		if err != nil {
+			return Config{}, err
+		}
+		cfg.BackupPath = defaultCfg.BackupPath
+
+		if err := save(configPath, cfg); err != nil {
+			return Config{}, err
+		}
+	}
+
 	if cfg.TabWidth <= 0 {
 		cfg.TabWidth = defaultTabWidth
 
@@ -82,6 +95,11 @@ func load(configPath string) (Config, error) {
 	}
 
 	cfg.NotesPath, err = expandHome(cfg.NotesPath)
+	if err != nil {
+		return Config{}, err
+	}
+
+	cfg.BackupPath, err = expandHome(cfg.BackupPath)
 	if err != nil {
 		return Config{}, err
 	}
@@ -115,8 +133,9 @@ func defaultConfig() (Config, error) {
 	}
 
 	return Config{
-		NotesPath: filepath.Join(home, "nocte"),
-		TabWidth:  defaultTabWidth,
+		NotesPath:  filepath.Join(home, "nocte"),
+		BackupPath: filepath.Join(home, "nocte_backups"),
+		TabWidth:   defaultTabWidth,
 	}, nil
 }
 

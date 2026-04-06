@@ -42,6 +42,7 @@ export PATH="$HOME/.local/bin:$PATH"
 - Type `:` to open the command palette
 - Use `:list` to browse every note sorted by last update
 - Use `:todo` to browse open Markdown tasks across notes
+- Use `:backup` to zip all notes and save the archive to the backup folder
 - Use `:export-all` to render all notes to HTML in the notes directory `html` folder
 - Use `:files` to open the notes directory in the system file manager
 - Use `:help` to see available commands
@@ -68,6 +69,7 @@ export PATH="$HOME/.local/bin:$PATH"
 
 ## Commands
 
+- `:backup` zips all notes and saves the archive to the backup folder
 - `:help` shows available commands
 - `:export-all` renders all notes to HTML in the notes directory `html` folder
 - `:info` shows version and path information
@@ -80,12 +82,14 @@ export PATH="$HOME/.local/bin:$PATH"
 
 - Config: `~/.config/nocte/config.json`
 - Default notes directory: `~/nocte`
+- Default backup directory: `~/nocte_backups`
 
 The config file currently supports:
 
 ```json
 {
   "notes_path": "~/nocte",
+  "backup_path": "~/nocte_backups",
   "tab_width": 4
 }
 ```

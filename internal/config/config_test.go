@@ -25,6 +25,10 @@ func TestLoadOrCreateCreatesDefaultConfig(t *testing.T) {
 	if cfg.NotesPath != wantNotesPath {
 		t.Fatalf("cfg.NotesPath = %q, want %q", cfg.NotesPath, wantNotesPath)
 	}
+	wantBackupPath := filepath.Join(tmpHome, "nocte_backups")
+	if cfg.BackupPath != wantBackupPath {
+		t.Fatalf("cfg.BackupPath = %q, want %q", cfg.BackupPath, wantBackupPath)
+	}
 	if cfg.TabWidth != defaultTabWidth {
 		t.Fatalf("cfg.TabWidth = %d, want %d", cfg.TabWidth, defaultTabWidth)
 	}
@@ -72,6 +76,54 @@ func TestLoadBackfillsBlankNotesPath(t *testing.T) {
 
 	if string(saved) == "{\n  \"notes_path\": \"   \"\n}\n" {
 		t.Fatalf("load() did not rewrite blank notes_path")
+	}
+}
+
+func TestLoadBackfillsBlankBackupPath(t *testing.T) {
+	tmpHome := t.TempDir()
+	t.Setenv("HOME", tmpHome)
+
+	configPath := filepath.Join(tmpHome, ".config", "nocte", fileName)
+	if err := os.MkdirAll(filepath.Dir(configPath), 0o755); err != nil {
+		t.Fatalf("MkdirAll() error = %v", err)
+	}
+
+	if err := os.WriteFile(configPath, []byte("{\n  \"notes_path\": \"~/notes\",\n  \"backup_path\": \"   \"\n}\n"), 0o644); err != nil {
+		t.Fatalf("WriteFile() error = %v", err)
+	}
+
+	cfg, err := load(configPath)
+	if err != nil {
+		t.Fatalf("load() error = %v", err)
+	}
+
+	wantBackupPath := filepath.Join(tmpHome, "nocte_backups")
+	if cfg.BackupPath != wantBackupPath {
+		t.Fatalf("cfg.BackupPath = %q, want %q", cfg.BackupPath, wantBackupPath)
+	}
+}
+
+func TestLoadExpandsHomeInBackupPath(t *testing.T) {
+	tmpHome := t.TempDir()
+	t.Setenv("HOME", tmpHome)
+
+	configPath := filepath.Join(tmpHome, ".config", "nocte", fileName)
+	if err := os.MkdirAll(filepath.Dir(configPath), 0o755); err != nil {
+		t.Fatalf("MkdirAll() error = %v", err)
+	}
+
+	if err := os.WriteFile(configPath, []byte("{\n  \"notes_path\": \"~/notes\",\n  \"backup_path\": \"~/my_backups\"\n}\n"), 0o644); err != nil {
+		t.Fatalf("WriteFile() error = %v", err)
+	}
+
+	cfg, err := load(configPath)
+	if err != nil {
+		t.Fatalf("load() error = %v", err)
+	}
+
+	want := filepath.Join(tmpHome, "my_backups")
+	if cfg.BackupPath != want {
+		t.Fatalf("cfg.BackupPath = %q, want %q", cfg.BackupPath, want)
 	}
 }
 

@@ -138,6 +138,7 @@ var (
 	openURLWithSystemApp  = openURL
 	writeClipboardText    = copyToClipboard
 	commands              = []command{
+		{name: ":backup", description: "Zip notes and save to backup folder"},
 		{name: ":export-all", description: "Render all notes to HTML"},
 		{name: ":help", description: "Show available commands"},
 		{name: ":files", description: "Open the notes folder"},
