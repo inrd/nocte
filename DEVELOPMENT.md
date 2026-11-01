@@ -8,6 +8,7 @@ Use the Make targets instead of raw Go commands when practical:
 - `make test`
 - `make fmt`
 - `make tidy`
+- `make vuln`
 
 Release the app with:
 
@@ -19,6 +20,7 @@ Add `PUSH=1` to also push the current branch and tag to `origin`.
 Other development workflow:
 
 - Run `make test` before pushing changes
+- Run `make vuln` to check the code and its dependency graph for known Go vulnerabilities
 - Run `make demo-gif` to rebuild `docs/demo/editor-demo.gif` from checked-in VHS fixtures and the current UI
 
 The repo uses workspace-local `GOCACHE` and `GOMODCACHE` through the `Makefile`. Keep that setup intact unless there is a clear reason to change it.

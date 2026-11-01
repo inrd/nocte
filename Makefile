@@ -5,8 +5,9 @@ BINDIR ?= $(HOME)/.local/bin
 GOCACHE := $(CURDIR)/.gocache
 GOMODCACHE := $(CURDIR)/.gomodcache
 GOENV := GOCACHE=$(GOCACHE) GOMODCACHE=$(GOMODCACHE)
+GOVULNCHECK_VERSION ?= v1.9.0
 
-.PHONY: run build install test fmt tidy clean demo-prepare demo-gif release
+.PHONY: run build install test fmt tidy vuln clean demo-prepare demo-gif release
 
 run:
 	$(GOENV) $(GO) run ./cmd/nocte
@@ -26,6 +27,9 @@ fmt:
 
 tidy:
 	$(GOENV) $(GO) mod tidy
+
+vuln:
+	$(GOENV) $(GO) run golang.org/x/vuln/cmd/govulncheck@$(GOVULNCHECK_VERSION) ./...
 
 clean:
 	rm -f $(APP)

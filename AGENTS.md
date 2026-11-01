@@ -90,9 +90,11 @@ Use the Make targets instead of raw Go commands when practical:
 - `make test`
 - `make fmt`
 - `make tidy`
+- `make vuln`
 - `make release VERSION=0.3.1`
 
 The repo uses workspace-local `GOCACHE` and `GOMODCACHE` through the `Makefile`. Keep that setup intact unless there is a clear reason to change it.
+The `go.mod` `toolchain` directive pins a patched Go release so builds and `make vuln` scans do not use a vulnerable standard library. Keep it at or above the latest patch release of the `go` directive's minor version.
 Use `make release VERSION=...` for version bumps so the version update, test run, commit, and tag creation stay consistent. Add `PUSH=1` when the release flow should also push the current branch and tag to `origin`.
 Keep small developer demo assets under `scripts/` when they help explain the current workflow. The committed README demo asset lives at `docs/demo/editor-demo.gif` and is regenerated with `make demo-gif`, which seeds `/tmp/nocte-vhs-demo` from `scripts/vhs/fixtures/notes` and records `scripts/vhs/editor-demo.tape`.
 
