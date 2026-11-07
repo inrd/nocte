@@ -64,6 +64,7 @@ Prefer a single `Usage` section in `README.md` over separate feature and how-to 
 - Pressing `Ctrl+E` in the editor should render the current note to an HTML file inside an `html` subdirectory of the main notes directory and open that rendered file in the default web browser.
 - The HTML export should stay broadly aligned with the editor's Markdown preview for the currently supported Markdown subset, but it does not need to behave like a full publishing-grade Markdown renderer.
 - Markdown image lines like `![alt](./image.png)` should render local image previews through `chafa` when it is available, and otherwise fall back to readable image label/path text.
+- Pressing `PgUp` or `PgDn` in the editor should move the cursor one visible page up or down, scrolling the editor with it.
 - Pressing `Ctrl+H` in the editor should open a help dialog listing all editor shortcuts.
 - Pressing `Ctrl+A` in the editor should discard unsaved changes and return to the launcher.
 - Pressing `Ctrl+L` in the editor should open a dialog listing links found in the current note, with visually distinct labels and URLs, and pressing `Enter` on a selected link should open it in the default web browser.

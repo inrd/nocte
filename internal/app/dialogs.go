@@ -61,6 +61,7 @@ func editorHelpDialog() string {
 		lipgloss.JoinHorizontal(lipgloss.Left, keyHintStyle.Render("Ctrl+E"), helpStyle.Render("  Export the current note to HTML")),
 		lipgloss.JoinHorizontal(lipgloss.Left, keyHintStyle.Render("Ctrl+L"), helpStyle.Render("  List links in the current note")),
 		lipgloss.JoinHorizontal(lipgloss.Left, keyHintStyle.Render("Ctrl+D"), helpStyle.Render("  Delete the current note")),
+		lipgloss.JoinHorizontal(lipgloss.Left, keyHintStyle.Render("PgUp/PgDn"), helpStyle.Render("  Move the cursor one page up or down")),
 	}
 
 	body := lipgloss.JoinVertical(

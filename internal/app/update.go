@@ -175,6 +175,12 @@ func (m Model) updateEditorKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "shift+tab":
 		m.unindentEditorLine()
 		return m, nil
+	case "pgup":
+		m.pageEditor(-1)
+		return m, nil
+	case "pgdown":
+		m.pageEditor(1)
+		return m, nil
 	case "ctrl+a":
 		m.discardEditor()
 		return m, nil

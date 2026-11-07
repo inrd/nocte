@@ -1,6 +1,7 @@
 package app
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -1394,5 +1395,42 @@ func TestResolveMarkdownImagePathExpandsEnvironmentVariables(t *testing.T) {
 	want := filepath.Join(tmpHome, "images", "diagram.png")
 	if got != want {
 		t.Fatalf("resolveMarkdownImagePath() = %q, want %q", got, want)
+	}
+}
+
+func TestUpdatePageKeysMoveEditorCursorByPage(t *testing.T) {
+	tmpDir := t.TempDir()
+	lines := make([]string, 200)
+	for i := range lines {
+		lines[i] = fmt.Sprintf("line %d", i)
+	}
+	notePath := writeTestNote(t, tmpDir, "long.md", strings.Join(lines, "\n"))
+
+	model := New(config.Config{NotesPath: tmpDir}, "", "test")
+	model = updateModel(t, model, tea.WindowSizeMsg{Width: 120, Height: 40})
+	model.openEditor(notePath, "long.md")
+	model.jumpEditorTo(0, 0)
+
+	page := model.editor.Height() - 1
+	if page < 1 {
+		t.Fatalf("editor height = %d, want > 1", model.editor.Height())
+	}
+
+	model = updateModel(t, model, tea.KeyMsg{Type: tea.KeyPgDown})
+	if got := model.editor.Line(); got != page {
+		t.Fatalf("editor.Line() after PgDown = %d, want %d", got, page)
+	}
+
+	model = updateModel(t, model, tea.KeyMsg{Type: tea.KeyPgDown})
+	model = updateModel(t, model, tea.KeyMsg{Type: tea.KeyPgUp})
+	if got := model.editor.Line(); got != page {
+		t.Fatalf("editor.Line() after PgDown+PgUp = %d, want %d", got, page)
+	}
+
+	for range 50 {
+		model = updateModel(t, model, tea.KeyMsg{Type: tea.KeyPgDown})
+	}
+	if got := model.editor.Line(); got != len(lines)-1 {
+		t.Fatalf("editor.Line() after many PgDown = %d, want %d", got, len(lines)-1)
 	}
 }

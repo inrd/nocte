@@ -283,6 +283,25 @@ func (m *Model) jumpEditorTo(line int, column int) {
 	m.editor.SetCursor(column)
 }
 
+// pageEditor moves the cursor up (direction < 0) or down by one editor page.
+// The textarea has no built-in page keys, so this steps visual rows through
+// the textarea's own Update so its viewport follows the cursor.
+func (m *Model) pageEditor(direction int) {
+	key := tea.KeyMsg{Type: tea.KeyDown}
+	if direction < 0 {
+		key = tea.KeyMsg{Type: tea.KeyUp}
+	}
+
+	steps := max(m.editor.Height()-1, 1)
+	for range steps {
+		line, offset := m.editor.Line(), m.editor.LineInfo().RowOffset
+		m.editor, _ = m.editor.Update(key)
+		if m.editor.Line() == line && m.editor.LineInfo().RowOffset == offset {
+			break
+		}
+	}
+}
+
 func (m *Model) toggleEditorTask() {
 	lines := strings.Split(m.editor.Value(), "\n")
 	line := m.editor.Line()
