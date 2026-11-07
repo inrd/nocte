@@ -106,10 +106,23 @@ func renderMarkdownPreviewLinesForNote(content string, notePath string, width in
 	inCodeBlock := false
 	completedParentIndent := -1
 
-	for i, line := range lines {
+	for i := 0; i < len(lines); i++ {
+		line := lines[i]
 		offsets[i] = len(rendered)
 		trimmed := strings.TrimSpace(line)
 		lineIndent := leadingVisualIndent(line)
+
+		if !inCodeBlock {
+			if table, end, ok := parseMarkdownTable(lines, i); ok {
+				completedParentIndent = -1
+				for j := i + 1; j < end; j++ {
+					offsets[j] = offsets[i]
+				}
+				rendered = append(rendered, renderTablePreview(table, lines[i:end], width)...)
+				i = end - 1
+				continue
+			}
+		}
 
 		switch {
 		case strings.HasPrefix(trimmed, "```"):
