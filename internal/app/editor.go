@@ -11,6 +11,10 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
+// editorMaxLines mirrors the textarea's internal line cap. Notes above it would
+// be silently truncated on load and then saved back shorter, so refuse them.
+const editorMaxLines = 10000
+
 func (m Model) isEditing() bool {
 	return m.editorPath != ""
 }
@@ -19,6 +23,11 @@ func (m *Model) openEditor(path string, name string) {
 	content, err := os.ReadFile(path)
 	if err != nil {
 		m.status = fmt.Sprintf("Could not open %s: %v", name, err)
+		m.isError = true
+		return
+	}
+	if lines := strings.Count(string(content), "\n") + 1; lines > editorMaxLines {
+		m.status = fmt.Sprintf("Could not open %s: %d lines exceeds the editor limit of %d", name, lines, editorMaxLines)
 		m.isError = true
 		return
 	}

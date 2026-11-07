@@ -69,7 +69,7 @@ Prefer a single `Usage` section in `README.md` over separate feature and how-to 
 - Pressing `Ctrl+A` in the editor should discard unsaved changes and return to the launcher.
 - Pressing `Ctrl+L` in the editor should open a dialog listing links found in the current note, with visually distinct labels and URLs, and pressing `Enter` on a selected link should open it in the default web browser.
 - Pressing `Ctrl+D` in the editor should open a confirmation alert for deleting the current note, prevent terminal EOF handling, and on confirm delete the note and return to the launcher.
-- The editor must support long notes without truncating content.
+- The editor must support long notes without truncating content, including notes beyond the Bubbles textarea default 99-line `MaxHeight` (disabled so `Enter` keeps working). Notes above the textarea's hard 10,000-line cap are refused on open with an error instead of being loaded truncated and saved back shorter.
 - The editor view must never render taller than the terminal, including notes with very long unbreakable lines such as long URLs, so the note header and pane titles stay visible.
 - The editor footer should keep editor exit shortcuts visible, point to `Ctrl+H` for the full shortcut list, show the current note size and save state, and warn when a very large note may slow editing or saving.
 - The editor footer should show Markdown task completion progress for the current note as a percentage with a small color-coded progress bar, using red below 50%, orange from 50% through 75%, yellow above 75%, and green at 100%.

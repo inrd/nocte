@@ -40,6 +40,61 @@ func TestOpenEditorDoesNotTruncateLongNotes(t *testing.T) {
 	}
 }
 
+func TestEditorEnterAddsLinesBeyondDefaultTextareaHeightLimit(t *testing.T) {
+	tmpDir := t.TempDir()
+	notePath := writeTestNote(t, tmpDir, "tall.md", strings.Repeat("line\n", 139))
+
+	model := New(config.Config{NotesPath: tmpDir}, "", "test")
+	model.openEditor(notePath, "tall.md")
+
+	before := model.editor.LineCount()
+	model = updateModel(t, model, tea.KeyMsg{Type: tea.KeyEnter})
+	model = updateModel(t, model, tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("new")})
+
+	if got := model.editor.LineCount(); got != before+1 {
+		t.Fatalf("editor.LineCount() = %d, want %d", got, before+1)
+	}
+	if got := model.editor.Value(); !strings.HasPrefix(got, "\nnewline\nline\n") {
+		t.Fatalf("editor value starts with %q, want inserted line", got[:min(len(got), 20)])
+	}
+}
+
+func TestOpenEditorRefusesNotesBeyondEditorLineLimit(t *testing.T) {
+	tmpDir := t.TempDir()
+	content := strings.Repeat("x\n", editorMaxLines)
+	notePath := writeTestNote(t, tmpDir, "huge.md", content)
+
+	model := New(config.Config{NotesPath: tmpDir}, "", "test")
+	model.openEditor(notePath, "huge.md")
+
+	if model.isEditing() {
+		t.Fatal("isEditing() = true, want note refused")
+	}
+	if !model.isError || !strings.Contains(model.status, "editor limit") {
+		t.Fatalf("status = %q, isError = %v, want line limit error", model.status, model.isError)
+	}
+	got, err := os.ReadFile(notePath)
+	if err != nil || string(got) != content {
+		t.Fatalf("note file changed or unreadable: err = %v", err)
+	}
+}
+
+func TestOpenEditorAcceptsNotesAtEditorLineLimit(t *testing.T) {
+	tmpDir := t.TempDir()
+	content := strings.Repeat("x\n", editorMaxLines-1)
+	notePath := writeTestNote(t, tmpDir, "big.md", content)
+
+	model := New(config.Config{NotesPath: tmpDir}, "", "test")
+	model.openEditor(notePath, "big.md")
+
+	if !model.isEditing() {
+		t.Fatalf("isEditing() = false, status = %q", model.status)
+	}
+	if got := model.editor.Value(); got != content {
+		t.Fatalf("editor content length = %d, want %d", len(got), len(content))
+	}
+}
+
 func TestNewEditorDisablesFocusedCurrentLineBackground(t *testing.T) {
 	model := New(config.Config{}, "", "test")
 

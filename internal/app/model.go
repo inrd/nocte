@@ -233,6 +233,8 @@ func New(cfg config.Config, configPath string, version string) Model {
 	editor.Prompt = ""
 	editor.ShowLineNumbers = false
 	editor.CharLimit = 0
+	// The default MaxHeight (99) caps logical lines and blocks Enter in longer notes.
+	editor.MaxHeight = 0
 	editor.FocusedStyle.CursorLine = lipgloss.NewStyle()
 	editor.SetHeight(12)
 	editor.SetWidth(64)
