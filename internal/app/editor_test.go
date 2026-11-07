@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -1360,6 +1361,12 @@ func TestPreviewContentRendersMarkdownImagesWithChafa(t *testing.T) {
 		}
 		if got := args[len(args)-1]; got != imagePath {
 			t.Fatalf("image path arg = %q, want %q", got, imagePath)
+		}
+		// Without these, chafa queries the terminal and the reply is typed into the note.
+		for _, want := range []string{"--probe=off", "--polite=on"} {
+			if !slices.Contains(args, want) {
+				t.Fatalf("chafa args = %q, want %q", args, want)
+			}
 		}
 		return []byte("img-line-1\nimg-line-2\n"), nil
 	}

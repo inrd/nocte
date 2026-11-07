@@ -150,7 +150,10 @@ func renderImageWithChafa(path string, width int) ([]string, error) {
 	}
 
 	height := max(4, min(12, width/2))
-	output, err := runCommandOutput(bin, "--format=symbols", fmt.Sprintf("--size=%dx%d", width, height), path)
+	// --probe=off stops chafa from querying the terminal (OSC 10/11). The
+	// terminal's reply would otherwise arrive as editor input and get typed
+	// into the note. --polite=on avoids cursor-visibility escapes in output.
+	output, err := runCommandOutput(bin, "--probe=off", "--polite=on", "--format=symbols", fmt.Sprintf("--size=%dx%d", width, height), path)
 	if err != nil {
 		message := strings.TrimSpace(string(output))
 		if message == "" {
