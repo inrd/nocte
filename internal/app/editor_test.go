@@ -422,6 +422,32 @@ func TestUpdateCtrlADiscardsChangesAndReturnsToLauncher(t *testing.T) {
 	}
 }
 
+func TestEditorViewFitsTerminalWithLongUnbreakableLines(t *testing.T) {
+	longURL := "https://example.com/" + strings.Repeat("very_long_path_segment_", 12) + ".html"
+	paragraph := strings.Repeat("See [ref]("+longURL+") and more text. ", 20)
+	content := "# Title\n\n" + paragraph + "\n\n" + paragraph + "\n"
+
+	for _, preview := range []bool{false, true} {
+		tmpDir := t.TempDir()
+		notePath := writeTestNote(t, tmpDir, "long-lines.md", content)
+
+		model := New(config.Config{NotesPath: tmpDir}, "", "test")
+		model = updateModel(t, model, tea.WindowSizeMsg{Width: 140, Height: 40})
+		model.openEditor(notePath, "long-lines.md")
+		if model.previewEnabled != preview {
+			model = updateModel(t, model, tea.KeyMsg{Type: tea.KeyCtrlP})
+		}
+
+		view := model.View()
+		if got := lipgloss.Height(view); got > 40 {
+			t.Fatalf("preview=%v: View() height = %d, want <= 40", preview, got)
+		}
+		if !strings.Contains(view, "long-lines.md") {
+			t.Fatalf("preview=%v: View() missing editor header", preview)
+		}
+	}
+}
+
 func TestUpdateCtrlPTogglesPreviewWhileEditing(t *testing.T) {
 	tmpDir := t.TempDir()
 	notePath := writeTestNote(t, tmpDir, "draft.md", "# Title\n\n- item")

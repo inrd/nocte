@@ -132,7 +132,9 @@ func (m *Model) resizeEditor() {
 		height = max(8, m.height-10)
 	}
 
-	m.editor.SetWidth(width)
+	// The editor box adds horizontal padding around the textarea; keep the
+	// textarea inside it so long unbreakable lines are not wrapped twice.
+	m.editor.SetWidth(width - inputStyle.GetHorizontalPadding())
 	m.editor.SetHeight(height)
 }
 

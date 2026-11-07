@@ -68,6 +68,7 @@ Prefer a single `Usage` section in `README.md` over separate feature and how-to 
 - Pressing `Ctrl+L` in the editor should open a dialog listing links found in the current note, with visually distinct labels and URLs, and pressing `Enter` on a selected link should open it in the default web browser.
 - Pressing `Ctrl+D` in the editor should open a confirmation alert for deleting the current note, prevent terminal EOF handling, and on confirm delete the note and return to the launcher.
 - The editor must support long notes without truncating content.
+- The editor view must never render taller than the terminal, including notes with very long unbreakable lines such as long URLs, so the note header and pane titles stay visible.
 - The editor footer should keep editor exit shortcuts visible, point to `Ctrl+H` for the full shortcut list, show the current note size and save state, and warn when a very large note may slow editing or saving.
 - The editor footer should show Markdown task completion progress for the current note as a percentage with a small color-coded progress bar, using red below 50%, orange from 50% through 75%, yellow above 75%, and green at 100%.
 - If saving on editor exit fails, the app should warn before discarding unsaved changes.
